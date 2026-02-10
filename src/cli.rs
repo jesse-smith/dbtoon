@@ -68,6 +68,10 @@ pub struct ExecArgs {
     #[arg(short = 'w', long, env = "DBTOON_WINDOWS_AUTH")]
     pub windows_auth: bool,
 
+    /// Trust SQL Server certificate (for self-signed/dev instances)
+    #[arg(long, env = "DBTOON_TRUST_SERVER_CERT")]
+    pub trust_server_certificate: bool,
+
     /// Databricks workspace host
     #[arg(long, env = "DBTOON_DATABRICKS_HOST")]
     pub host: Option<String>,

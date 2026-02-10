@@ -147,6 +147,7 @@
 - [X] T027 [P] Add verbose diagnostic output to all execution paths — when `config.verbose` is true, emit timestamped `[dbtoon] ...` messages to stderr: connecting to backend (host/server), connection established (duration), validating query (mode, statement count), validation result (pass/fail, duration), executing query, query complete (duration, row count), formatting output, writing file — per contracts/cli-interface.md verbose diagnostics format
 - [X] T028 [P] Harden edge case handling across all modules — connection drop mid-query: backends must return `DbtoonError::Connection` not partial results; no backend/connection config: config.rs returns `DbtoonError::Config("no backend specified")`; query timeout: ensure both backends respect timeout_secs and return `DbtoonError::Timeout`; Databricks warehouse stopped/starting: emit `[dbtoon] warehouse starting, waiting...` on stderr if verbose; Windows Auth from non-domain machine: passthrough ODBC driver error as `DbtoonError::Auth`; multi-statement batch edge case already handled by validation
 - [X] T029 Validate against quickstart.md scenarios — manually run each command from quickstart.md (SQL Server Windows Auth, SQL Server SQL Auth, Databricks query, config profiles, warehouse discovery, file output, write access, verbose mode) and verify output matches documented behavior; additionally, time the TOON formatting + output pipeline for a 1,000-row / 10-column result set and verify it completes in under 5 seconds (SC-006), measuring only client-side processing time; fix any discrepancies
+- [X] T030 [US1] Add TrustServerCertificate support to SQL Server connections — ODBC Driver 18 defaults to encrypted connections with certificate validation, which fails against local/dev instances with self-signed certs; add `--trust-server-certificate` CLI flag to ExecArgs (env: `DBTOON_TRUST_SERVER_CERT`), `trust_server_certificate: Option<bool>` to TomlProfile and `trust_server_certificate: bool` to `BackendConfig::SqlServer`; when enabled, append `TrustServerCertificate=yes` to ODBC connection string in `SqlServerBackend::connection_string()`; precedence: CLI flag > config profile > false; update config_test.rs for new field
 
 ---
 
@@ -236,7 +237,7 @@ Then: T023 (truncation output)
 
 | Metric | Value |
 |--------|-------|
-| Total tasks | 29 |
+| Total tasks | 30 |
 | Phase 1 (Setup) | 2 |
 | Phase 2 (Foundational) | 8 |
 | US1 (SQL Server read) | 7 (incl. 4 test tasks) |
@@ -245,6 +246,6 @@ Then: T023 (truncation output)
 | US4 (Row limits) | 3 |
 | US5 (File output) | 1 |
 | US6 (Warehouse discovery) | 2 |
-| Polish | 3 |
+| Polish | 4 |
 | MVP scope | 17 tasks (Phases 1-3) |
 | Parallel opportunities | 3 phases with internal parallelism |

@@ -25,6 +25,7 @@ pub enum BackendConfig {
         server: String,
         database: Option<String>,
         auth: SqlServerAuth,
+        trust_server_certificate: bool,
     },
     Databricks {
         host: String,
@@ -72,6 +73,7 @@ struct TomlProfile {
     password: Option<String>,
     password_env: Option<String>,
     windows_auth: Option<bool>,
+    trust_server_certificate: Option<bool>,
     host: Option<String>,
     token: Option<String>,
     token_env: Option<String>,
@@ -231,10 +233,14 @@ pub fn load_from_exec_args(
                 SqlServerAuth::SqlLogin { username, password }
             };
 
+            let trust_server_certificate = args.trust_server_certificate
+                || profile.trust_server_certificate.unwrap_or(false);
+
             BackendConfig::SqlServer {
                 server,
                 database,
                 auth,
+                trust_server_certificate,
             }
         }
         "databricks" => {

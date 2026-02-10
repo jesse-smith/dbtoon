@@ -12,6 +12,7 @@ fn make_exec_args(overrides: impl FnOnce(&mut ExecArgs)) -> ExecArgs {
         username: None,
         password: None,
         windows_auth: false,
+        trust_server_certificate: false,
         host: None,
         token: None,
         warehouse: None,
@@ -38,7 +39,7 @@ fn test_sqlserver_windows_auth_config() {
 
     let config = load_from_exec_args(&args, false, false, None).unwrap();
     match &config.backend {
-        BackendConfig::SqlServer { server, database, auth } => {
+        BackendConfig::SqlServer { server, database, auth, .. } => {
             assert_eq!(server, "localhost");
             assert_eq!(database.as_deref(), Some("testdb"));
             assert!(matches!(auth, SqlServerAuth::WindowsIntegrated));

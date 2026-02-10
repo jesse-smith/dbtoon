@@ -217,6 +217,7 @@ async fn execute_query(
             server,
             database,
             auth,
+            trust_server_certificate,
         } => {
             verbose::emit(verbose, &format!("connecting to sqlserver at {}...", server));
             let timer = Timer::start();
@@ -224,6 +225,7 @@ async fn execute_query(
                 server.clone(),
                 database.clone(),
                 clone_auth(auth),
+                *trust_server_certificate,
             );
             verbose::emit(verbose, "executing query...");
             let result = backend_impl

@@ -8,14 +8,21 @@ pub struct SqlServerBackend {
     server: String,
     database: Option<String>,
     auth: SqlServerAuth,
+    trust_server_certificate: bool,
 }
 
 impl SqlServerBackend {
-    pub fn new(server: String, database: Option<String>, auth: SqlServerAuth) -> Self {
+    pub fn new(
+        server: String,
+        database: Option<String>,
+        auth: SqlServerAuth,
+        trust_server_certificate: bool,
+    ) -> Self {
         Self {
             server,
             database,
             auth,
+            trust_server_certificate,
         }
     }
 
@@ -41,6 +48,10 @@ impl SqlServerBackend {
                     odbc_api::escape_attribute_value(password.expose_secret())
                 ));
             }
+        }
+
+        if self.trust_server_certificate {
+            parts.push("TrustServerCertificate=yes".to_string());
         }
 
         parts.join(";") + ";"
