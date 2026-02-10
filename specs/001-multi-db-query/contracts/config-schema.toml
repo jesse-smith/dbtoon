@@ -1,0 +1,45 @@
+# dbtoon Configuration File Schema
+#
+# Location: ~/.config/dbtoon/config.toml (Linux)
+#            ~/Library/Application Support/dbtoon/config.toml (macOS)
+#            %APPDATA%\dbtoon\config.toml (Windows)
+#
+# Override with: --config <path> or DBTOON_CONFIG=<path>
+
+# Global defaults (apply to all profiles unless overridden)
+[defaults]
+row_limit = 500          # Default row limit (0 = unlimited)
+timeout = 60             # Query timeout in seconds
+verbose = false          # Emit diagnostics to stderr
+allow_write = false      # Enable write access (must also use exec-write command)
+
+# Named connection profiles
+# Use with: --profile <name> or DBTOON_PROFILE=<name>
+
+# SQL Server profile example (Windows Auth)
+[profiles.prod-sqlserver]
+backend = "sqlserver"
+server = "prod-db.corp.example.com"
+database = "analytics"
+windows_auth = true
+
+# SQL Server profile example (SQL Auth)
+[profiles.dev-sqlserver]
+backend = "sqlserver"
+server = "localhost"
+database = "testdb"
+username = "sa"
+# Password should be in env var DBTOON_PASSWORD, not in config file.
+# If you must put it here, use password_env to reference an env var:
+password_env = "DEV_SQL_PASSWORD"
+
+# Databricks profile example
+[profiles.databricks-prod]
+backend = "databricks"
+host = "adb-1234567890.azuredatabricks.net"
+warehouse_id = "abc123def456"
+catalog = "main"
+schema = "default"
+# Token should be in env var DBTOON_DATABRICKS_TOKEN, not in config file.
+# If you must put it here, use token_env to reference an env var:
+token_env = "DATABRICKS_TOKEN"
