@@ -125,6 +125,10 @@ A user setting up dbtoon for the first time with Databricks needs to find the id
 - Q: What should the configuration precedence order be? → A: CLI flags > env vars > config file (standard CLI convention)
 - Q: What should the default query timeout be? → A: 60 seconds
 - Q: Should the tool support a verbose/debug flag for diagnostics? → A: Yes, --verbose flag emitting diagnostics (connection attempts, query timing, validation steps) to stderr
+- Q: What exit code convention should the tool use? → A: 0 for success, 1 for any error (standard Unix convention)
+- Q: What is the write access opt-in mechanism? → A: Config/env flag required (e.g., DBTOON_ALLOW_WRITE=true) in addition to using exec_write command
+- Q: Should the tool mask credentials in verbose and error output? → A: Mask credentials in all output by default; provide flag/env var to override for debugging
+- Q: How should "standard connection" be defined for SC-006? → A: Local network or same-region cloud connection (< 10ms network RTT)
 
 ## Requirements *(mandatory)*
 
@@ -133,19 +137,20 @@ A user setting up dbtoon for the first time with Databricks needs to find the id
 - **FR-001**: The tool MUST support querying SQL Server databases using Windows Integrated Auth and standard SQL auth.
 - **FR-002**: The tool MUST support querying Databricks SQL warehouses using token-based authentication.
 - **FR-003**: The tool MUST provide a read-only execution command (`exec_read`) that validates queries cannot modify state before executing them.
-- **FR-004**: The tool MUST provide a write execution command (`exec_write`) that executes queries without validation, gated behind explicit opt-in.
+- **FR-004**: The tool MUST provide a write execution command (`exec_write`) that executes queries without validation, gated behind explicit opt-in via a configuration or environment flag (e.g., `DBTOON_ALLOW_WRITE=true`). Both the flag and the `exec_write` command are required; the command alone is insufficient.
 - **FR-005**: All query results MUST be returned in TOON format — never as JSON tables.
 - **FR-006**: Read-only validation MUST allow: SELECT, EXPLAIN, DESCRIBE, SHOW, USE.
 - **FR-007**: Read-only validation MUST deny by default: INSERT, UPDATE, DELETE, DDL, stored procedure execution, and any unrecognized statement type.
 - **FR-008**: Read-only validation MUST detect and deny write operations disguised as reads: `SELECT INTO`, CTE-wrapped writes (WITH ... INSERT/UPDATE/DELETE).
 - **FR-009**: Read-only validation MUST reject queries that cannot be parsed (fail safe).
 - **FR-010**: Read-only validation MUST validate every statement in a multi-statement batch individually.
-- **FR-011**: The tool MUST return errors to stderr and results to stdout.
+- **FR-011**: The tool MUST return errors to stderr and results to stdout. Exit code MUST be 0 on success and 1 on any error.
 - **FR-012**: The tool MUST support a configurable default row limit of 500 rows for large result sets, with an option to disable it.
 - **FR-013**: The tool MUST support writing results to a file on disk as an alternative to stdout.
 - **FR-014**: The tool MUST provide a subcommand to list available Databricks SQL warehouses.
 - **FR-015**: The tool MUST accept connection configuration via environment variables, command-line flags, or configuration file, with precedence: CLI flags > environment variables > config file.
 - **FR-016**: The tool MUST support a `--verbose` flag that emits diagnostic information (connection attempts, query timing, validation steps) to stderr without affecting stdout output.
+- **FR-017**: The tool MUST mask credentials (passwords, tokens) in all output (verbose, errors) by default. A flag or environment variable MUST be available to disable masking for manual debugging.
 
 ### Key Entities
 
@@ -163,7 +168,7 @@ A user setting up dbtoon for the first time with Databricks needs to find the id
 - **SC-003**: 100% of known write-pattern queries (INSERT, UPDATE, DELETE, SELECT INTO, CTE-wrapped writes, EXEC) are rejected by the read-only command before reaching the database.
 - **SC-004**: Queries that fail to parse are never executed in read-only mode.
 - **SC-005**: An AI agent using `exec_read` cannot accidentally modify database state through any query it constructs.
-- **SC-006**: Query results for a 1,000-row table are returned in under 5 seconds on a standard connection (excluding network latency to the database itself).
+- **SC-006**: Query results for a 1,000-row table are returned in under 5 seconds on a local network or same-region cloud connection (< 10ms network RTT), excluding database-side query execution time.
 - **SC-007**: A first-time user can configure the tool and run their first query within 5 minutes using only the tool's help output and error messages.
 - **SC-008**: TOON-formatted output uses fewer tokens than equivalent JSON table output for the same result set.
 
