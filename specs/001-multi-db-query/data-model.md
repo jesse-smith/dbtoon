@@ -15,11 +15,11 @@ Represents a configured database connection target. Polymorphic over backend typ
 ```
 BackendConfig
 ├── SqlServer
-│   ├── driver: String           -- ODBC driver name (e.g., "ODBC Driver 18 for SQL Server")
+│   ├── driver: String           -- ODBC driver name (hardcoded: "ODBC Driver 18 for SQL Server")
 │   ├── server: String           -- hostname or hostname\instance
 │   ├── database: Option<String> -- target database
 │   ├── auth: SqlServerAuth      -- authentication method (see below)
-│   └── encrypt: Option<bool>    -- TLS encryption preference
+│   └── encrypt: Option<bool>    -- TLS encryption preference (hardcoded: driver default)
 │
 └── Databricks
     ├── host: String             -- workspace URL (e.g., "adb-123.azuredatabricks.net")
