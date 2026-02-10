@@ -111,10 +111,20 @@ A user setting up dbtoon for the first time with Databricks needs to find the id
 - What happens when the database connection drops mid-query? The tool MUST return a clear connection error, not a partial result or a hang.
 - What happens when a query returns zero rows? The tool MUST return a valid TOON output with column headers but no data rows.
 - What happens when the user provides no backend/connection configuration? The tool MUST return a clear error explaining required configuration.
-- How does the tool handle query timeouts? The tool MUST support a configurable timeout and return a clear timeout error when exceeded.
+- How does the tool handle query timeouts? The tool MUST support a configurable timeout (default: 60 seconds) and return a clear timeout error when exceeded.
 - What happens when SQL Server Windows Auth is attempted from a non-domain-joined machine? The tool MUST return a clear authentication error from the underlying driver, not an opaque crash.
 - What happens when the Databricks warehouse is stopped or starting up? The tool MUST return a clear status message rather than an opaque HTTP error.
 - What happens when a multi-statement batch contains a mix of read and write statements in `exec_read` mode? The tool MUST reject the entire batch if any single statement fails validation.
+
+## Clarifications
+
+### Session 2026-02-10
+
+- Q: Does a TOON format specification currently exist that this tool can produce against? → A: Yes — spec at https://toonformat.dev/guide/format-overview.html (links to complete specs at bottom), Rust implementation at https://github.com/toon-format/toon-rust
+- Q: What should the default row limit be? → A: 500 rows
+- Q: What should the configuration precedence order be? → A: CLI flags > env vars > config file (standard CLI convention)
+- Q: What should the default query timeout be? → A: 60 seconds
+- Q: Should the tool support a verbose/debug flag for diagnostics? → A: Yes, --verbose flag emitting diagnostics (connection attempts, query timing, validation steps) to stderr
 
 ## Requirements *(mandatory)*
 
@@ -131,10 +141,11 @@ A user setting up dbtoon for the first time with Databricks needs to find the id
 - **FR-009**: Read-only validation MUST reject queries that cannot be parsed (fail safe).
 - **FR-010**: Read-only validation MUST validate every statement in a multi-statement batch individually.
 - **FR-011**: The tool MUST return errors to stderr and results to stdout.
-- **FR-012**: The tool MUST support a configurable default row limit for large result sets, with an option to disable it.
+- **FR-012**: The tool MUST support a configurable default row limit of 500 rows for large result sets, with an option to disable it.
 - **FR-013**: The tool MUST support writing results to a file on disk as an alternative to stdout.
 - **FR-014**: The tool MUST provide a subcommand to list available Databricks SQL warehouses.
-- **FR-015**: The tool MUST accept connection configuration via standard mechanisms (environment variables, command-line flags, or configuration file).
+- **FR-015**: The tool MUST accept connection configuration via environment variables, command-line flags, or configuration file, with precedence: CLI flags > environment variables > config file.
+- **FR-016**: The tool MUST support a `--verbose` flag that emits diagnostic information (connection attempts, query timing, validation steps) to stderr without affecting stdout output.
 
 ### Key Entities
 
@@ -160,5 +171,5 @@ A user setting up dbtoon for the first time with Databricks needs to find the id
 
 - The user's environment has the necessary database drivers installed (e.g., ODBC driver for SQL Server).
 - Databricks SQL warehouses are running or auto-start is enabled.
-- The TOON output format is already specified elsewhere; this tool is a producer of TOON, not the format's definition.
+- The TOON output format is specified at https://toonformat.dev/guide/format-overview.html (complete specs linked from that page). A Rust implementation exists at https://github.com/toon-format/toon-rust. This tool is a producer of TOON, not the format's definition.
 - Connection credentials are managed by the user; the tool does not store or manage secrets beyond reading them from the environment or configuration.
