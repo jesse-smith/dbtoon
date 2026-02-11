@@ -37,6 +37,7 @@ async fn exec_read(
     config_path: Option<&std::path::PathBuf>,
 ) -> Result<(), DbtoonError> {
     let app_config = config::load_from_exec_args(args, verbose, show_secrets, config_path)?;
+    let verbose = app_config.verbose;
 
     // Resolve SQL input
     let sql = resolve_sql(args)?;
@@ -85,6 +86,7 @@ async fn exec_write(
     config_path: Option<&std::path::PathBuf>,
 ) -> Result<(), DbtoonError> {
     let app_config = config::load_from_exec_args(args, verbose, show_secrets, config_path)?;
+    let verbose = app_config.verbose;
 
     if !app_config.allow_write {
         return Err(DbtoonError::Auth {
@@ -113,6 +115,7 @@ async fn list_warehouses(
 ) -> Result<(), DbtoonError> {
     let app_config =
         config::load_from_list_warehouses_args(args, verbose, show_secrets, config_path)?;
+    let verbose = app_config.verbose;
 
     let (host, token) = match &app_config.backend {
         config::BackendConfig::Databricks { host, token, .. } => (host.clone(), token.clone()),

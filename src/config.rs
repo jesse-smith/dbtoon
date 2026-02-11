@@ -309,14 +309,19 @@ pub fn load_from_exec_args(
         .map(|v| v == "true")
         .unwrap_or(toml_config.defaults.allow_write.unwrap_or(false));
 
-    // Resolve row limit
+    // row_limit: --no-limit > CLI/ENV > TOML > 500
     let default_row_limit = if args.no_limit {
         None
     } else {
-        Some(args.limit)
+        Some(args.limit.unwrap_or_else(|| toml_config.defaults.row_limit.unwrap_or(500)))
     };
 
-    let query_timeout_secs = args.timeout;
+    // timeout: CLI/ENV > TOML > 60
+    let query_timeout_secs = args.timeout
+        .unwrap_or_else(|| toml_config.defaults.timeout.unwrap_or(60));
+
+    // verbose: CLI/ENV OR TOML default
+    let verbose = verbose || toml_config.defaults.verbose.unwrap_or(false);
 
     Ok(AppConfig {
         backend,
@@ -381,11 +386,13 @@ pub fn load_from_list_warehouses_args(
         schema: profile.schema.clone(),
     };
 
+    let verbose = verbose || toml_config.defaults.verbose.unwrap_or(false);
+
     Ok(AppConfig {
         backend,
         allow_write: false,
-        default_row_limit: Some(500),
-        query_timeout_secs: 60,
+        default_row_limit: Some(toml_config.defaults.row_limit.unwrap_or(500)),
+        query_timeout_secs: toml_config.defaults.timeout.unwrap_or(60),
         verbose,
         show_secrets,
         output_file: None,

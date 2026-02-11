@@ -58,6 +58,17 @@ struct StatementError {
     message: Option<String>,
 }
 
+impl StatementError {
+    fn format_message(self) -> String {
+        match (self.error_code, self.message) {
+            (Some(code), Some(msg)) => format!("[{}] {}", code, msg),
+            (Some(code), None) => format!("[{}]", code),
+            (None, Some(msg)) => msg,
+            (None, None) => "unknown error".to_string(),
+        }
+    }
+}
+
 #[derive(Deserialize)]
 struct Manifest {
     schema: Option<SchemaInfo>,
@@ -168,7 +179,7 @@ impl DatabricksBackend {
                     let msg = response
                         .status
                         .error
-                        .and_then(|e| e.message)
+                        .map(|e| e.format_message())
                         .unwrap_or_else(|| "unknown error".to_string());
                     return Err(DbtoonError::Query { message: msg });
                 }
@@ -288,7 +299,7 @@ impl Backend for DatabricksBackend {
                 let msg = response
                     .status
                     .error
-                    .and_then(|e| e.message)
+                    .map(|e| e.format_message())
                     .unwrap_or_else(|| "unknown error".to_string());
                 Err(DbtoonError::Query { message: msg })
             }

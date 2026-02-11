@@ -18,9 +18,9 @@ fn make_exec_args(overrides: impl FnOnce(&mut ExecArgs)) -> ExecArgs {
         warehouse: None,
         catalog: None,
         schema: None,
-        limit: 500,
+        limit: None,
         no_limit: false,
-        timeout: 60,
+        timeout: None,
         output: None,
         profile: None,
     };
@@ -137,4 +137,44 @@ fn test_config_file_not_found_errors() {
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
     assert!(err.contains("config file not found"), "Got: {}", err);
+}
+
+#[test]
+fn test_explicit_limit_overrides_default() {
+    let args = make_exec_args(|a| {
+        a.backend = Some("sqlserver".to_string());
+        a.server = Some("localhost".to_string());
+        a.windows_auth = true;
+        a.limit = Some(100);
+    });
+
+    let config = load_from_exec_args(&args, false, false, None).unwrap();
+    assert_eq!(config.default_row_limit, Some(100));
+}
+
+#[test]
+fn test_explicit_timeout_overrides_default() {
+    let args = make_exec_args(|a| {
+        a.backend = Some("sqlserver".to_string());
+        a.server = Some("localhost".to_string());
+        a.windows_auth = true;
+        a.timeout = Some(120);
+    });
+
+    let config = load_from_exec_args(&args, false, false, None).unwrap();
+    assert_eq!(config.query_timeout_secs, 120);
+}
+
+#[test]
+fn test_no_limit_overrides_explicit_limit() {
+    let args = make_exec_args(|a| {
+        a.backend = Some("sqlserver".to_string());
+        a.server = Some("localhost".to_string());
+        a.windows_auth = true;
+        a.limit = Some(100);
+        a.no_limit = true;
+    });
+
+    let config = load_from_exec_args(&args, false, false, None).unwrap();
+    assert_eq!(config.default_row_limit, None);
 }

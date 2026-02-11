@@ -93,16 +93,16 @@ pub struct ExecArgs {
     pub schema: Option<String>,
 
     /// Max rows to return (default: 500)
-    #[arg(short = 'l', long, default_value = "500", env = "DBTOON_ROW_LIMIT")]
-    pub limit: usize,
+    #[arg(short = 'l', long, env = "DBTOON_ROW_LIMIT")]
+    pub limit: Option<usize>,
 
     /// Disable row limit
     #[arg(long)]
     pub no_limit: bool,
 
     /// Query timeout in seconds (default: 60)
-    #[arg(short = 't', long, default_value = "60", env = "DBTOON_TIMEOUT")]
-    pub timeout: u64,
+    #[arg(short = 't', long, env = "DBTOON_TIMEOUT")]
+    pub timeout: Option<u64>,
 
     /// Write results to file instead of stdout
     #[arg(short = 'o', long)]

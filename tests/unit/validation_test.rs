@@ -1,4 +1,4 @@
-use dbtoon::validation::{validate, BackendDialect, DenialKind, ValidationResult};
+use dbtoon::validation::{validate, BackendDialect, ValidationResult};
 
 fn assert_safe(sql: &str, dialect: BackendDialect) {
     match validate(sql, dialect) {
