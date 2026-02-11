@@ -66,7 +66,7 @@ A developer working on dbtoon wants confidence that the priority ladder for conf
 ### Functional Requirements
 
 - **FR-001**: System MUST fall back to standard Databricks environment variables (`DATABRICKS_HOST`, `DATABRICKS_TOKEN`, `DATABRICKS_SQL_WAREHOUSE_ID`, `DATABRICKS_CATALOG`, `DATABRICKS_SCHEMA`) when the corresponding dbtoon-specific environment variables are not set.
-- **FR-002**: System MUST preserve the existing priority ladder: CLI flag > dbtoon-specific env var > TOML profile field > standard Databricks env var > TOML defaults section.
+- **FR-002**: System MUST preserve the existing priority ladder: CLI flag > dbtoon-specific env var > TOML profile field > standard Databricks env var > TOML defaults section (non-connection settings only, e.g., row_limit).
 - **FR-003**: System MUST resolve each Databricks configuration field independently through the priority ladder (i.e., host may come from one tier while token comes from another).
 - **FR-004**: System MUST treat empty-string environment variables the same as unset for the purpose of fallback resolution.
 - **FR-005**: System MUST NOT change the behavior of SQL Server configuration or any non-Databricks settings.
