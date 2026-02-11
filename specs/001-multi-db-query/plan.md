@@ -1,5 +1,7 @@
 # Implementation Plan: Multi-Database Query CLI
 
+> **STATUS: COMPLETE** | Merged: 2026-02-11 | Branch: `001-multi-db-query`
+
 **Branch**: `001-multi-db-query` | **Date**: 2026-02-10 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-multi-db-query/spec.md`
 

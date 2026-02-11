@@ -1,5 +1,7 @@
 # Feature Specification: Multi-Database Query CLI
 
+> **STATUS: COMPLETE** | Merged: 2026-02-11 | Branch: `001-multi-db-query`
+
 **Feature Branch**: `001-multi-db-query`
 **Created**: 2026-02-10
 **Status**: Draft

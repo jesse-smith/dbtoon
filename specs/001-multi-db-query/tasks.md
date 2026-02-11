@@ -1,5 +1,7 @@
 # Tasks: Multi-Database Query CLI
 
+> **STATUS: COMPLETE** | Merged: 2026-02-11 | Branch: `001-multi-db-query`
+
 **Input**: Design documents from `/specs/001-multi-db-query/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/cli-interface.md, contracts/config-schema.toml, quickstart.md
 
