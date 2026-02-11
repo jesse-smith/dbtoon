@@ -82,6 +82,16 @@ struct TomlProfile {
     schema: Option<String>,
 }
 
+/// Filter `Some("")` to `None`. Passes through `None` and non-empty values.
+pub fn non_empty(s: Option<&str>) -> Option<&str> {
+    s.filter(|v| !v.is_empty())
+}
+
+/// Read an env var, returning `None` if unset or empty.
+pub fn env_non_empty(key: &str) -> Option<String> {
+    std::env::var(key).ok().filter(|v| !v.is_empty())
+}
+
 /// Config path resolution result — distinguishes explicit vs auto-resolved paths.
 struct ResolvedConfigPath {
     path: PathBuf,
@@ -244,10 +254,14 @@ pub fn load_from_exec_args(
             }
         }
         "databricks" => {
-            let host = args
-                .host
-                .as_deref()
-                .or(profile.host.as_deref())
+            let std_host = env_non_empty("DATABRICKS_HOST");
+            let std_warehouse = env_non_empty("DATABRICKS_SQL_WAREHOUSE_ID");
+            let std_catalog = env_non_empty("DATABRICKS_CATALOG");
+            let std_schema = env_non_empty("DATABRICKS_SCHEMA");
+
+            let host = non_empty(args.host.as_deref())
+                .or(non_empty(profile.host.as_deref()))
+                .or(std_host.as_deref())
                 .ok_or_else(|| DbtoonError::Config {
                     message: "no host specified for databricks backend".to_string(),
                 })?
@@ -264,29 +278,27 @@ pub fn load_from_exec_args(
                     .as_ref()
                     .map(|t| SecretString::from(t.clone()))
             })
+            .or_else(|| env_non_empty("DATABRICKS_TOKEN").map(SecretString::from))
             .ok_or_else(|| DbtoonError::Config {
                 message: "no token specified for databricks backend".to_string(),
             })?;
 
-            let warehouse_id = args
-                .warehouse
-                .as_deref()
-                .or(profile.warehouse_id.as_deref())
+            let warehouse_id = non_empty(args.warehouse.as_deref())
+                .or(non_empty(profile.warehouse_id.as_deref()))
+                .or(std_warehouse.as_deref())
                 .ok_or_else(|| DbtoonError::Config {
                     message: "no warehouse ID specified for databricks backend".to_string(),
                 })?
                 .to_string();
 
-            let catalog = args
-                .catalog
-                .as_deref()
-                .or(profile.catalog.as_deref())
+            let catalog = non_empty(args.catalog.as_deref())
+                .or(non_empty(profile.catalog.as_deref()))
+                .or(std_catalog.as_deref())
                 .map(|s| s.to_string());
 
-            let schema = args
-                .schema
-                .as_deref()
-                .or(profile.schema.as_deref())
+            let schema = non_empty(args.schema.as_deref())
+                .or(non_empty(profile.schema.as_deref()))
+                .or(std_schema.as_deref())
                 .map(|s| s.to_string());
 
             BackendConfig::Databricks {
@@ -352,10 +364,14 @@ pub fn load_from_list_warehouses_args(
 
     let profile = profile.unwrap_or_default();
 
-    let host = args
-        .host
-        .as_deref()
-        .or(profile.host.as_deref())
+    let std_host = env_non_empty("DATABRICKS_HOST");
+    let std_warehouse = env_non_empty("DATABRICKS_SQL_WAREHOUSE_ID");
+    let std_catalog = env_non_empty("DATABRICKS_CATALOG");
+    let std_schema = env_non_empty("DATABRICKS_SCHEMA");
+
+    let host = non_empty(args.host.as_deref())
+        .or(non_empty(profile.host.as_deref()))
+        .or(std_host.as_deref())
         .ok_or_else(|| DbtoonError::Config {
             message: "no host specified for list-warehouses".to_string(),
         })?
@@ -372,18 +388,30 @@ pub fn load_from_list_warehouses_args(
             .as_ref()
             .map(|t| SecretString::from(t.clone()))
     })
+    .or_else(|| env_non_empty("DATABRICKS_TOKEN").map(SecretString::from))
     .ok_or_else(|| DbtoonError::Config {
         message: "no token specified for list-warehouses".to_string(),
     })?;
 
-    let warehouse_id = profile.warehouse_id.clone().unwrap_or_default();
+    let warehouse_id = non_empty(profile.warehouse_id.as_deref())
+        .or(std_warehouse.as_deref())
+        .unwrap_or_default()
+        .to_string();
+
+    let catalog = non_empty(profile.catalog.as_deref())
+        .or(std_catalog.as_deref())
+        .map(|s| s.to_string());
+
+    let schema = non_empty(profile.schema.as_deref())
+        .or(std_schema.as_deref())
+        .map(|s| s.to_string());
 
     let backend = BackendConfig::Databricks {
         host,
         token,
         warehouse_id,
-        catalog: profile.catalog.clone(),
-        schema: profile.schema.clone(),
+        catalog,
+        schema,
     };
 
     let verbose = verbose || toml_config.defaults.verbose.unwrap_or(false);

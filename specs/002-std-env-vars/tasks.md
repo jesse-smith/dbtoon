@@ -19,7 +19,7 @@
 
 **Purpose**: Add env-var test helpers that all user story tests depend on
 
-- [ ] T001 Add static `ENV_MUTEX: Mutex<()>` and `EnvGuard` drop-based cleanup struct to `tests/unit/config_test.rs` — the guard sets env vars on creation, removes them on `Drop`, and holds the mutex lock for the duration. See plan.md D4 for design.
+- [X] T001 Add static `ENV_MUTEX: Mutex<()>` and `EnvGuard` drop-based cleanup struct to `tests/unit/config_test.rs` — the guard sets env vars on creation, removes them on `Drop`, and holds the mutex lock for the duration. See plan.md D4 for design.
 
 **Checkpoint**: Test infrastructure ready — `cargo test` passes with no new test failures
 
@@ -29,10 +29,10 @@
 
 **Purpose**: Add `non_empty` and `env_non_empty` helper functions that all Databricks resolution changes depend on
 
-- [ ] T002 Write unit tests for `non_empty(Option<&str>) -> Option<&str>` in `tests/unit/config_test.rs` — test cases: `None` → `None`, `Some("")` → `None`, `Some("value")` → `Some("value")`
-- [ ] T003 Write unit tests for `env_non_empty(key: &str) -> Option<String>` in `tests/unit/config_test.rs` — test cases: var unset → `None`, var set to `""` → `None`, var set to `"value"` → `Some("value")`. Use `EnvGuard` from T001.
-- [ ] T004 Implement `non_empty` and `env_non_empty` as `pub(crate)` functions in `src/config.rs`. `non_empty` filters `Some("")` to `None`. `env_non_empty` calls `std::env::var` and filters empty strings. See plan.md D3.
-- [ ] T005 Verify T002 and T003 tests pass with `cargo test`
+- [X] T002 Write unit tests for `non_empty(Option<&str>) -> Option<&str>` in `tests/unit/config_test.rs` — test cases: `None` → `None`, `Some("")` → `None`, `Some("value")` → `Some("value")`
+- [X] T003 Write unit tests for `env_non_empty(key: &str) -> Option<String>` in `tests/unit/config_test.rs` — test cases: var unset → `None`, var set to `""` → `None`, var set to `"value"` → `Some("value")`. Use `EnvGuard` from T001.
+- [X] T004 Implement `non_empty` and `env_non_empty` as `pub(crate)` functions in `src/config.rs`. `non_empty` filters `Some("")` to `None`. `env_non_empty` calls `std::env::var` and filters empty strings. See plan.md D3.
+- [X] T005 Verify T002 and T003 tests pass with `cargo test`
 
 **Checkpoint**: Helpers implemented and tested — `cargo test` passes, `cargo clippy` clean
 
@@ -48,13 +48,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before T008 implementation**
 
-- [ ] T006 [US1] Write test `test_databricks_std_env_fallback` in `tests/unit/config_test.rs` — set all 5 standard Databricks env vars via `EnvGuard`, call `load_from_exec_args` with `backend=Some("databricks")` and no host/token/warehouse/catalog/schema args, assert all 5 fields resolve from the standard env vars. Covers spec acceptance scenario US1.1 and FR-001.
-- [ ] T007 [US1] Write test `test_dbtoon_env_overrides_std_env` in `tests/unit/config_test.rs` — set both dbtoon-specific (`DBTOON_DATABRICKS_HOST`) and standard (`DATABRICKS_HOST`) env vars to different values, construct `ExecArgs` with `host=None` (so clap env kicks in — but since we construct `ExecArgs` directly, simulate by setting `args.host = Some("dbtoon-host")`), assert dbtoon value wins. Covers spec acceptance scenario US1.2 and FR-002.
+- [X] T006 [US1] Write test `test_databricks_std_env_fallback` in `tests/unit/config_test.rs` — set all 5 standard Databricks env vars via `EnvGuard`, call `load_from_exec_args` with `backend=Some("databricks")` and no host/token/warehouse/catalog/schema args, assert all 5 fields resolve from the standard env vars. Covers spec acceptance scenario US1.1 and FR-001.
+- [X] T007 [US1] Write test `test_dbtoon_env_overrides_std_env` in `tests/unit/config_test.rs` — set both dbtoon-specific (`DBTOON_DATABRICKS_HOST`) and standard (`DATABRICKS_HOST`) env vars to different values, construct `ExecArgs` with `host=None` (so clap env kicks in — but since we construct `ExecArgs` directly, simulate by setting `args.host = Some("dbtoon-host")`), assert dbtoon value wins. Covers spec acceptance scenario US1.2 and FR-002.
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Modify the `"databricks"` branch in `load_from_exec_args` in `src/config.rs` to add standard env var fallback for all 5 fields. For non-secret fields (host, warehouse_id, catalog, schema): wrap existing `args.*` and `profile.*` lookups with `non_empty()`, chain `.or(env_non_empty("DATABRICKS_*").as_deref())` after the TOML profile tier. For token: chain `.or_else(|| env_non_empty("DATABRICKS_TOKEN").map(SecretString::from))` after the existing `profile.token` fallback. Create temporary `let` bindings for `env_non_empty` results to satisfy borrow lifetimes. See plan.md D1, D2, D5 for the exact mapping table.
-- [ ] T009 [US1] Run `cargo test` — verify T006 and T007 pass and all pre-existing tests still pass (SC-002)
+- [X] T008 [US1] Modify the `"databricks"` branch in `load_from_exec_args` in `src/config.rs` to add standard env var fallback for all 5 fields. For non-secret fields (host, warehouse_id, catalog, schema): wrap existing `args.*` and `profile.*` lookups with `non_empty()`, chain `.or(env_non_empty("DATABRICKS_*").as_deref())` after the TOML profile tier. For token: chain `.or_else(|| env_non_empty("DATABRICKS_TOKEN").map(SecretString::from))` after the existing `profile.token` fallback. Create temporary `let` bindings for `env_non_empty` results to satisfy borrow lifetimes. See plan.md D1, D2, D5 for the exact mapping table.
+- [X] T009 [US1] Run `cargo test` — verify T006 and T007 pass and all pre-existing tests still pass (SC-002)
 
 **Checkpoint**: `load_from_exec_args` supports standard env var fallback. MVP complete — users can connect with only standard vars set.
 
@@ -70,15 +70,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL (for list-warehouses) or verify they PASS (for exec-args TOML override) before T013 implementation**
 
-- [ ] T010 [US2] Write test `test_toml_profile_overrides_std_env` in `tests/unit/config_test.rs` — create a temp TOML config file with a profile containing `host`, `token`, `warehouse_id`, `catalog`, `schema` values. Set standard env vars to different values. Call `load_from_exec_args` with `profile=Some("test")` and the temp config path. Assert all fields match the TOML values, not the env vars. Covers spec US2 acceptance scenario 1, FR-002.
-- [ ] T011 [US2] Write test `test_toml_partial_profile_falls_through_to_std_env` in `tests/unit/config_test.rs` — create a temp TOML config file with a profile that has `host` and `token` but NOT `catalog`. Set `DATABRICKS_CATALOG=env-catalog`. Call `load_from_exec_args`. Assert `host` comes from TOML, `catalog` comes from standard env var. Covers spec US2 acceptance scenario 2, FR-003.
+- [X] T010 [US2] Write test `test_toml_profile_overrides_std_env` in `tests/unit/config_test.rs` — create a temp TOML config file with a profile containing `host`, `token`, `warehouse_id`, `catalog`, `schema` values. Set standard env vars to different values. Call `load_from_exec_args` with `profile=Some("test")` and the temp config path. Assert all fields match the TOML values, not the env vars. Covers spec US2 acceptance scenario 1, FR-002.
+- [X] T011 [US2] Write test `test_toml_partial_profile_falls_through_to_std_env` in `tests/unit/config_test.rs` — create a temp TOML config file with a profile that has `host` and `token` but NOT `catalog`. Set `DATABRICKS_CATALOG=env-catalog`. Call `load_from_exec_args`. Assert `host` comes from TOML, `catalog` comes from standard env var. Covers spec US2 acceptance scenario 2, FR-003.
 
-- [ ] T012 [US2] Write test `test_list_warehouses_std_env_fallback` in `tests/unit/config_test.rs` — set all 5 standard Databricks env vars via `EnvGuard`, call `load_from_list_warehouses_args` with `backend=Some("databricks")` and no host/token/warehouse/catalog/schema args, assert all 5 fields resolve from the standard env vars. Mirrors T006 but for the list-warehouses code path. Covers FR-001 for list-warehouses.
+- [X] T012 [US2] Write test `test_list_warehouses_std_env_fallback` in `tests/unit/config_test.rs` — set all 5 standard Databricks env vars via `EnvGuard`, call `load_from_list_warehouses_args` with `backend=Some("databricks")` and no host/token/warehouse/catalog/schema args, assert all 5 fields resolve from the standard env vars. Mirrors T006 but for the list-warehouses code path. Covers FR-001 for list-warehouses.
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Modify `load_from_list_warehouses_args` in `src/config.rs` to add the same standard env var fallback pattern for host, token, warehouse_id, catalog, and schema. Apply `non_empty()` wrapping and `env_non_empty()` fallbacks matching the pattern from T008.
-- [ ] T014 [US2] Run `cargo test` — verify T010, T011, T012 pass, all pre-existing tests still pass
+- [X] T013 [US2] Modify `load_from_list_warehouses_args` in `src/config.rs` to add the same standard env var fallback pattern for host, token, warehouse_id, catalog, and schema. Apply `non_empty()` wrapping and `env_non_empty()` fallbacks matching the pattern from T008.
+- [X] T014 [US2] Run `cargo test` — verify T010, T011, T012 pass, all pre-existing tests still pass
 
 **Checkpoint**: Both `load_from_exec_args` and `load_from_list_warehouses_args` support standard env var fallback with correct TOML precedence.
 
@@ -92,13 +92,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T015 [US3] Write test `test_cli_flag_overrides_all_tiers` in `tests/unit/config_test.rs` — set standard env vars, create TOML profile, AND set `args.host = Some("cli-host")`. Assert CLI value wins. Covers the full ladder: CLI > TOML > std env.
-- [ ] T016 [US3] Write test `test_empty_dbtoon_env_falls_through_to_std_env` in `tests/unit/config_test.rs` — set `args.host = Some("")` (simulating empty `DBTOON_DATABRICKS_HOST`) and `DATABRICKS_HOST=std-host`. Assert `std-host` is used. Covers FR-004, spec edge case 2.
-- [ ] T017 [US3] Write test `test_empty_std_env_treated_as_unset` in `tests/unit/config_test.rs` — set `DATABRICKS_HOST=""` with no other host source. Assert error (host is required). Set `DATABRICKS_CATALOG=""` with no other catalog source. Assert `catalog` is `None`. Covers FR-004, FR-007, spec edge case 1.
-- [ ] T018 [US3] Write test `test_independent_field_resolution` in `tests/unit/config_test.rs` — set `args.host = Some("cli-host")`, `DATABRICKS_TOKEN=std-token`, `DATABRICKS_SQL_WAREHOUSE_ID=std-wh` (no TOML profile). Assert host from CLI, token from std env, warehouse from std env. Covers FR-003, spec edge case 3.
-- [ ] T019 [US3] Write test `test_std_env_token_fallback` in `tests/unit/config_test.rs` — set only `DATABRICKS_TOKEN=std-token` (no `args.token`, no `profile.token_env`, no `profile.token`). Assert token resolves to `std-token`. Covers the specific `resolve_secret` chain + new fallback for tokens (plan.md D2).
-- [ ] T020 [US3] Write test `test_dotenv_std_vars_participate` in `tests/unit/config_test.rs` — write a `.env` file containing `DATABRICKS_HOST=dotenv-host` to a temp directory, call `dotenvy::from_path()` on it, then call `load_from_exec_args` with no host arg. Assert host resolves to `dotenv-host`. Covers spec edge case 4.
-- [ ] T021 [US3] Run `cargo test` — verify all tests pass (T015–T020 + all pre-existing). Confirm at least 6 distinct priority-ladder scenarios covered (SC-003). Run `cargo clippy` — verify no warnings.
+- [X] T015 [US3] Write test `test_cli_flag_overrides_all_tiers` in `tests/unit/config_test.rs` — set standard env vars, create TOML profile, AND set `args.host = Some("cli-host")`. Assert CLI value wins. Covers the full ladder: CLI > TOML > std env.
+- [X] T016 [US3] Write test `test_empty_dbtoon_env_falls_through_to_std_env` in `tests/unit/config_test.rs` — set `args.host = Some("")` (simulating empty `DBTOON_DATABRICKS_HOST`) and `DATABRICKS_HOST=std-host`. Assert `std-host` is used. Covers FR-004, spec edge case 2.
+- [X] T017 [US3] Write test `test_empty_std_env_treated_as_unset` in `tests/unit/config_test.rs` — set `DATABRICKS_HOST=""` with no other host source. Assert error (host is required). Set `DATABRICKS_CATALOG=""` with no other catalog source. Assert `catalog` is `None`. Covers FR-004, FR-007, spec edge case 1.
+- [X] T018 [US3] Write test `test_independent_field_resolution` in `tests/unit/config_test.rs` — set `args.host = Some("cli-host")`, `DATABRICKS_TOKEN=std-token`, `DATABRICKS_SQL_WAREHOUSE_ID=std-wh` (no TOML profile). Assert host from CLI, token from std env, warehouse from std env. Covers FR-003, spec edge case 3.
+- [X] T019 [US3] Write test `test_std_env_token_fallback` in `tests/unit/config_test.rs` — set only `DATABRICKS_TOKEN=std-token` (no `args.token`, no `profile.token_env`, no `profile.token`). Assert token resolves to `std-token`. Covers the specific `resolve_secret` chain + new fallback for tokens (plan.md D2).
+- [X] T020 [US3] Write test `test_dotenv_std_vars_participate` in `tests/unit/config_test.rs` — write a `.env` file containing `DATABRICKS_HOST=dotenv-host` to a temp directory, call `dotenvy::from_path()` on it, then call `load_from_exec_args` with no host arg. Assert host resolves to `dotenv-host`. Covers spec edge case 4.
+- [X] T021 [US3] Run `cargo test` — verify all tests pass (T015–T020 + all pre-existing). Confirm at least 6 distinct priority-ladder scenarios covered (SC-003). Run `cargo clippy` — verify no warnings.
 
 **Checkpoint**: Comprehensive test coverage in place. All priority-ladder tiers exercised. Edge cases covered.
 
@@ -108,9 +108,9 @@
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T022 Run `cargo clippy` and fix any warnings introduced by new code in `src/config.rs`
-- [ ] T023 Run `cargo test` end-to-end — verify all existing tests pass unmodified (SC-002) and no new warnings
-- [ ] T024 Verify no changes to `src/cli.rs` or any other file outside `src/config.rs` and `tests/unit/config_test.rs` (SC-004, FR-005)
+- [X] T022 Run `cargo clippy` and fix any warnings introduced by new code in `src/config.rs`
+- [X] T023 Run `cargo test` end-to-end — verify all existing tests pass unmodified (SC-002) and no new warnings
+- [X] T024 Verify no changes to `src/cli.rs` or any other file outside `src/config.rs` and `tests/unit/config_test.rs` (SC-004, FR-005)
 
 **Checkpoint**: Feature complete. All tests pass, clippy clean, no unintended changes.
 
