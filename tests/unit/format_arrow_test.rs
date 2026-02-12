@@ -1,6 +1,6 @@
 use std::fs;
 
-use arrow::array::{Float64Array, Int32Array, RecordBatchReader, StringArray};
+use arrow::array::{Float64Array, Int32Array, StringArray};
 use arrow::datatypes::DataType;
 use arrow::ipc::reader::FileReader;
 

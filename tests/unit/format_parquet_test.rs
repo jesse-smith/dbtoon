@@ -83,7 +83,7 @@ fn write_and_read_back_parquet_with_typed_columns() {
     assert_eq!(id_col.value(1), 2);
 
     let name_col = batch
-        .column(0 + 1)
+        .column(1)
         .as_any()
         .downcast_ref::<arrow::array::StringArray>()
         .unwrap();
