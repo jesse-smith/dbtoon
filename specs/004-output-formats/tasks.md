@@ -1,5 +1,7 @@
 # Tasks: Multiple Output File Formats
 
+> **STATUS: COMPLETE** | Merged: 2026-02-12 | Branch: `004-output-formats`
+
 **Input**: Design documents from `/specs/004-output-formats/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
