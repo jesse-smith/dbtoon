@@ -19,9 +19,9 @@
 
 **Purpose**: Add dependencies and create module scaffolding so all subsequent phases compile
 
-- [ ] T001 Add `csv = "1.4"`, `arrow = { version = "57", default-features = false, features = ["ipc"] }`, `parquet = { version = "57", default-features = false, features = ["arrow"] }` to Cargo.toml and run `cargo check` to verify resolution
-- [ ] T002 [P] Create stub source modules in src/ and register in src/lib.rs: `format_detect.rs` (with `OutputFormat` enum skeleton and `detect_format` signature returning `todo!()`), `format_csv.rs` (with `write_csv` signature returning `todo!()`), `format_columnar.rs` (with `sql_type_to_arrow` and `build_record_batch` signatures returning `todo!()`), `format_parquet.rs` (with `write_parquet` signature returning `todo!()`), `format_arrow.rs` (with `write_arrow` signature returning `todo!()`)
-- [ ] T003 [P] Create empty stub test modules in tests/unit/ and register in tests/unit/mod.rs: `format_detect_test.rs`, `format_csv_test.rs`, `format_columnar_test.rs`, `format_parquet_test.rs`, `format_arrow_test.rs`
+- [X] T001 Add `csv = "1.4"`, `arrow = { version = "57", default-features = false, features = ["ipc"] }`, `parquet = { version = "57", default-features = false, features = ["arrow"] }` to Cargo.toml and run `cargo check` to verify resolution
+- [X] T002 [P] Create stub source modules in src/ and register in src/lib.rs: `format_detect.rs` (with `OutputFormat` enum skeleton and `detect_format` signature returning `todo!()`), `format_csv.rs` (with `write_csv` signature returning `todo!()`), `format_columnar.rs` (with `sql_type_to_arrow` and `build_record_batch` signatures returning `todo!()`), `format_parquet.rs` (with `write_parquet` signature returning `todo!()`), `format_arrow.rs` (with `write_arrow` signature returning `todo!()`)
+- [X] T003 [P] Create empty stub test modules in tests/unit/ and register in tests/unit/mod.rs: `format_detect_test.rs`, `format_csv_test.rs`, `format_columnar_test.rs`, `format_parquet_test.rs`, `format_arrow_test.rs`
 
 **Checkpoint**: `cargo check` and `cargo test` pass with stubs. All new modules are registered.
 

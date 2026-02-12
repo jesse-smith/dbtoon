@@ -1,4 +1,9 @@
 mod config_test;
+mod format_arrow_test;
+mod format_columnar_test;
+mod format_csv_test;
+mod format_detect_test;
+mod format_parquet_test;
 mod format_test;
 mod masking_test;
 mod validation_test;
