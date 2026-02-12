@@ -37,7 +37,7 @@
 - [ ] T005 Implement `OutputFormat` enum (`Toon`, `Csv`, `Parquet`, `Arrow`) with `#[derive(Debug, Clone, Copy, PartialEq, Eq)]` and `detect_format(path: &Path) -> Result<(OutputFormat, PathBuf), DbtoonError>` in src/format_detect.rs. Use `Path::extension()` with `to_ascii_lowercase()` for case-insensitive matching. Return `DbtoonError::Format` for unrecognized extensions with message: `unsupported output format ".xxx" — supported: .toon, .txt, .csv, .parquet, .arrow`. No-extension paths get `.toon` appended to the returned PathBuf.
 - [ ] T006 Modify src/main.rs: (1) In `exec_read()` and `exec_write()`, call `format_detect::detect_format()` before `execute_query()` when `app_config.output_file` is `Some` — this ensures unrecognized extensions fail fast before query execution per spec scenario US1-6. (2) Pass the detected `(OutputFormat, PathBuf)` to `output_result()`. (3) Rewrite `output_result()` to dispatch by `OutputFormat`: Toon→existing `format::to_toon()` + `output::write_file()` path; Csv/Parquet/Arrow→call respective writer functions. For now, Csv/Parquet/Arrow arms can return `DbtoonError::Format { message: "not yet implemented".into() }` until their phases complete. (4) Update the verbose message from `"formatting TOON output..."` to be format-aware.
 
-**Checkpoint**: `cargo test` passes. Format detection works for all extensions. `output_result()` dispatches by format (non-TOON formats error with "not yet implemented").
+**Checkpoint**: `cargo test` passes — including all existing TOON-related tests, which serve as regression coverage for FR-010 (zero breaking changes to TOON output). Format detection works for all extensions. `output_result()` dispatches by format (non-TOON formats error with "not yet implemented").
 
 ---
 
@@ -51,7 +51,7 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [US1] Write CSV writer tests in tests/unit/format_csv_test.rs covering: (1) basic output — header row from `ColumnMeta.name` fields + data rows from `CellValue::Text` values; (2) NULL values → empty fields (adjacent delimiters); (3) values containing commas, double quotes, and newlines are escaped per RFC 4180; (4) CRLF line terminator; (5) empty result set (zero rows) → header-only CSV; (6) column names with special characters are escaped. Use `tempfile` or write to a `Vec<u8>` buffer. Tests should construct `QueryResult` directly (no DB needed).
+- [ ] T007 [US1] Write CSV writer tests in tests/unit/format_csv_test.rs covering: (1) basic output — header row from `ColumnMeta.name` fields + data rows from `CellValue::Text` values; (2) NULL values → empty fields (adjacent delimiters); (3) values containing commas, double quotes, and newlines are escaped per RFC 4180; (4) CRLF line terminator; (5) empty result set (zero rows) → header-only CSV; (6) column names with special characters are escaped. Write to a `Vec<u8>` buffer (no `tempfile` dependency needed). Tests should construct `QueryResult` directly (no DB needed).
 
 ### Implementation for User Story 1
 

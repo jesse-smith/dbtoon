@@ -86,27 +86,60 @@ pub fn build_record_batch(result: &QueryResult) -> Result<(Arc<Schema>, RecordBa
 
 ## Dispatch Contract (main.rs)
 
-The `output_result()` function changes from:
+### Fail-Fast Detection (exec_read / exec_write)
+
+Format detection happens **before** `execute_query()` so that unrecognized extensions fail fast without executing a query (spec US1 scenario 6):
 
 ```rust
-// BEFORE: always TOON
-let toon = format::to_toon(result)?;
-output::write_file(&toon, path)?;
+// In exec_read() and exec_write(), before execute_query():
+let format_info = if let Some(ref path) = app_config.output_file {
+    Some(format_detect::detect_format(path)?)  // fails fast on bad extension
+} else {
+    None
+};
+
+let result = execute_query(&app_config, &sql, verbose).await?;
+output_result(&app_config, &result, format_info)?;
+```
+
+### Format-Aware output_result()
+
+The `output_result()` signature changes from:
+
+```rust
+// BEFORE
+fn output_result(app_config: &AppConfig, result: &QueryResult) -> Result<(), DbtoonError>
 ```
 
 To:
 
 ```rust
-// AFTER: format-aware dispatch
-let (format, path) = format_detect::detect_format(path)?;
-match format {
-    OutputFormat::Toon => {
-        let toon = format::to_toon(result)?;
-        output::write_file(&toon, &path)?;
+// AFTER
+fn output_result(
+    app_config: &AppConfig,
+    result: &QueryResult,
+    format_info: Option<(OutputFormat, PathBuf)>,
+) -> Result<(), DbtoonError>
+```
+
+Dispatch logic:
+
+```rust
+if let Some((format, path)) = format_info {
+    match format {
+        OutputFormat::Toon => {
+            let toon = format::to_toon(result)?;
+            output::write_file(&toon, &path)?;
+        }
+        OutputFormat::Csv => format_csv::write_csv(result, &path)?,
+        OutputFormat::Parquet => format_parquet::write_parquet(result, &path)?,
+        OutputFormat::Arrow => format_arrow::write_arrow(result, &path)?,
     }
-    OutputFormat::Csv => format_csv::write_csv(result, &path)?,
-    OutputFormat::Parquet => format_parquet::write_parquet(result, &path)?,
-    OutputFormat::Arrow => format_arrow::write_arrow(result, &path)?,
+    output::print_summary(result.rows.len(), &path, result.truncated);
+} else {
+    let toon = format::to_toon(result)?;
+    output::print_result(&toon);
+    // truncation warning handled as before
 }
 ```
 

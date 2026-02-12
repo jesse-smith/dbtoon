@@ -63,7 +63,7 @@ src/
 ├── format_columnar.rs   # NEW: shared Arrow type mapping + array building (Parquet & Arrow)
 ├── format_parquet.rs    # NEW: Parquet writer (parquet crate, uses format_columnar)
 ├── format_arrow.rs      # NEW: Arrow IPC writer (arrow-ipc, uses format_columnar)
-├── output.rs            # Modified: write_file() accepts bytes or string; add write_bytes()
+├── output.rs            # Unchanged (format writers write directly via their crate APIs)
 ├── error.rs             # Modified: add arrow/parquet error variants
 ├── cli.rs               # Unchanged
 ├── config.rs            # Unchanged
