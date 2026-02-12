@@ -2,20 +2,16 @@ use crate::backend::{CellValue, QueryResult};
 use crate::error::DbtoonError;
 
 /// Convert a QueryResult to a TOON-formatted string.
+///
+/// Output is a root object: `{ "types": [...], "rows": [...] }`.
 pub fn to_toon(result: &QueryResult) -> Result<String, DbtoonError> {
-    // Handle zero-row results with column names — toon_format can't infer columns
-    // from an empty array, so we produce the TOON header manually.
-    if result.rows.is_empty() && !result.columns.is_empty() {
-        let col_names = result
-            .columns
-            .iter()
-            .map(|c| c.name.as_str())
-            .collect::<Vec<_>>()
-            .join(",");
-        return Ok(format!("[0]{{{}}}:\n", col_names));
-    }
+    let types: Vec<serde_json::Value> = result
+        .columns
+        .iter()
+        .map(|c| serde_json::Value::String(c.type_name.clone()))
+        .collect();
 
-    let array: Vec<serde_json::Value> = result
+    let rows: Vec<serde_json::Value> = result
         .rows
         .iter()
         .map(|row| {
@@ -32,9 +28,11 @@ pub fn to_toon(result: &QueryResult) -> Result<String, DbtoonError> {
         })
         .collect();
 
-    let json_array = serde_json::Value::Array(array);
+    let mut root = serde_json::Map::new();
+    root.insert("types".to_string(), serde_json::Value::Array(types));
+    root.insert("rows".to_string(), serde_json::Value::Array(rows));
 
-    toon_format::encode_default(&json_array)
+    toon_format::encode_default(&serde_json::Value::Object(root))
         .map_err(|e| DbtoonError::Format { message: e.to_string() })
 }
 
