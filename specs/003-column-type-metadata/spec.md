@@ -61,7 +61,7 @@ A user runs a query that returns zero rows. The output still includes column typ
 - What happens when a column type has parameters (e.g., `VARCHAR(255)`, `DECIMAL(10,2)`)? Type name should include the parameters in standard SQL notation.
 - What happens when a query returns a single column? The types field should contain exactly one type name.
 - What happens when a query returns many columns? The types field should contain one type name per column, all positionally aligned.
-- How does the system handle unknown or unmappable SQL Server type variants? The system should produce a reasonable fallback string rather than crashing (e.g., the raw type name or `UNKNOWN`).
+- How does the system handle unknown or unmappable SQL Server type variants? The system produces `UNKNOWN` as the fallback type string rather than crashing.
 
 ## Requirements *(mandatory)*
 
