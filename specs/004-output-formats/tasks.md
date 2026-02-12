@@ -113,9 +113,9 @@
 
 **Purpose**: Final validation across all formats
 
-- [ ] T019 [P] Run `cargo clippy` and fix all warnings across new modules in src/format_detect.rs, src/format_csv.rs, src/format_columnar.rs, src/format_parquet.rs, src/format_arrow.rs
-- [ ] T020 Verify `src/format_columnar.rs` is under 200 LOC (FR-006 feasibility gate) — if exceeded, evaluate whether to defer Parquet/Arrow or refactor
-- [ ] T021 Run quickstart.md validation scenarios: CSV output, Parquet output, Arrow IPC output, TOON stdout, TOON file (.toon and .txt), no-extension auto-append, unrecognized extension error
+- [X] T019 [P] Run `cargo clippy` and fix all warnings across new modules in src/format_detect.rs, src/format_csv.rs, src/format_columnar.rs, src/format_parquet.rs, src/format_arrow.rs
+- [X] T020 Verify `src/format_columnar.rs` is under 200 LOC (FR-006 feasibility gate) — if exceeded, evaluate whether to defer Parquet/Arrow or refactor
+- [X] T021 Run quickstart.md validation scenarios: CSV output, Parquet output, Arrow IPC output, TOON stdout, TOON file (.toon and .txt), no-extension auto-append, unrecognized extension error
 
 ---
 
