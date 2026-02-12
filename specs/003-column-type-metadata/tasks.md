@@ -51,11 +51,11 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [US1] Update existing format tests in `tests/unit/format_test.rs` to expect the new root-object output structure (`{ "types": [...], "rows": [...] }`) instead of a bare array. All 4 existing tests should now fail (output format hasn't changed yet).
+- [x] T004 [US1] Update existing format tests in `tests/unit/format_test.rs` to expect the new root-object output structure (`{ "types": [...], "rows": [...] }`) instead of a bare array. All 4 existing tests should now fail (output format hasn't changed yet).
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Update `to_toon()` in `src/format.rs` to build a `serde_json::Value::Object` with `types` (array of type strings from `QueryResult.columns`) inserted before `rows` (existing tabular data). Encode the object with `toon_format::encode_default()`. Remove the zero-row special-case manual TOON header (per research.md R4 — the root-object approach handles empty rows naturally). Verify: `cargo test` passes — all T004 tests green, TOON round-trip succeeds.
+- [x] T005 [US1] Update `to_toon()` in `src/format.rs` to build a `serde_json::Value::Object` with `types` (array of type strings from `QueryResult.columns`) inserted before `rows` (existing tabular data). Encode the object with `toon_format::encode_default()`. Remove the zero-row special-case manual TOON header (per research.md R4 — the root-object approach handles empty rows naturally). Verify: `cargo test` passes — all T004 tests green, TOON round-trip succeeds.
 
 **Checkpoint**: User Story 1 complete. All query outputs include `types` metadata. Output is valid TOON. Zero-row results handled by same code path (no special case).
 

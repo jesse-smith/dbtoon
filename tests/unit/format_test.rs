@@ -4,13 +4,19 @@ use dbtoon::format::{to_toon, to_toon_kv};
 use odbc_api::DataType;
 use std::num::NonZeroUsize;
 
+/// Helper: encode to TOON and decode back to serde_json::Value (no type coercion)
+fn round_trip(result: &QueryResult) -> serde_json::Value {
+    let toon = to_toon(result).unwrap();
+    toon_format::decode_no_coerce(&toon).unwrap()
+}
+
 #[test]
 fn test_3_column_2_row_result() {
     let result = QueryResult {
         columns: vec![
             ColumnMeta { name: "id".to_string(), type_name: "INT".to_string() },
-            ColumnMeta { name: "name".to_string(), type_name: "VARCHAR".to_string() },
-            ColumnMeta { name: "email".to_string(), type_name: "VARCHAR".to_string() },
+            ColumnMeta { name: "name".to_string(), type_name: "VARCHAR(255)".to_string() },
+            ColumnMeta { name: "email".to_string(), type_name: "VARCHAR(255)".to_string() },
         ],
         rows: vec![
             vec![
@@ -28,14 +34,25 @@ fn test_3_column_2_row_result() {
         truncated: false,
     };
 
-    let toon = to_toon(&result).unwrap();
-    // Should contain tabular format markers
-    assert!(toon.contains("[2]"), "Should contain row count [2], got: {}", toon);
-    assert!(toon.contains("id"), "Should contain column 'id'");
-    assert!(toon.contains("name"), "Should contain column 'name'");
-    assert!(toon.contains("email"), "Should contain column 'email'");
-    assert!(toon.contains("Alice"), "Should contain value 'Alice'");
-    assert!(toon.contains("Bob"), "Should contain value 'Bob'");
+    let decoded = round_trip(&result);
+    let obj = decoded.as_object().expect("output should be a root object");
+
+    let types = obj.get("types").expect("should have 'types' key")
+        .as_array().expect("types should be an array");
+    assert_eq!(types.len(), 3);
+    assert_eq!(types[0], "INT");
+    assert_eq!(types[1], "VARCHAR(255)");
+    assert_eq!(types[2], "VARCHAR(255)");
+
+    let rows = obj.get("rows").expect("should have 'rows' key")
+        .as_array().expect("rows should be an array");
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0]["id"], "1");
+    assert_eq!(rows[0]["name"], "Alice");
+    assert_eq!(rows[0]["email"], "alice@co.com");
+    assert_eq!(rows[1]["id"], "2");
+    assert_eq!(rows[1]["name"], "Bob");
+    assert_eq!(rows[1]["email"], "bob@co.com");
 }
 
 #[test]
@@ -43,17 +60,25 @@ fn test_zero_row_result() {
     let result = QueryResult {
         columns: vec![
             ColumnMeta { name: "col1".to_string(), type_name: "INT".to_string() },
-            ColumnMeta { name: "col2".to_string(), type_name: "VARCHAR".to_string() },
+            ColumnMeta { name: "col2".to_string(), type_name: "VARCHAR(100)".to_string() },
         ],
         rows: vec![],
         total_rows: None,
         truncated: false,
     };
 
-    let toon = to_toon(&result).unwrap();
-    assert!(toon.contains("[0]"), "Should contain [0] for zero rows, got: {}", toon);
-    assert!(toon.contains("col1"), "Should contain column 'col1'");
-    assert!(toon.contains("col2"), "Should contain column 'col2'");
+    let decoded = round_trip(&result);
+    let obj = decoded.as_object().expect("output should be a root object");
+
+    let types = obj.get("types").expect("should have 'types' key")
+        .as_array().expect("types should be an array");
+    assert_eq!(types.len(), 2);
+    assert_eq!(types[0], "INT");
+    assert_eq!(types[1], "VARCHAR(100)");
+
+    let rows = obj.get("rows").expect("should have 'rows' key")
+        .as_array().expect("rows should be an array");
+    assert!(rows.is_empty(), "rows should be empty for zero-row result");
 }
 
 #[test]
@@ -69,8 +94,18 @@ fn test_null_cell_value() {
         truncated: false,
     };
 
-    let toon = to_toon(&result).unwrap();
-    assert!(toon.contains("null"), "Should contain 'null' for NULL value, got: {}", toon);
+    let decoded = round_trip(&result);
+    let obj = decoded.as_object().expect("output should be a root object");
+
+    let types = obj.get("types").expect("should have 'types' key")
+        .as_array().expect("types should be an array");
+    assert_eq!(types.len(), 1);
+    assert_eq!(types[0], "INT");
+
+    let rows = obj.get("rows").expect("should have 'rows' key")
+        .as_array().expect("rows should be an array");
+    assert_eq!(rows.len(), 1);
+    assert!(rows[0]["val"].is_null(), "NULL cell should decode as null");
 }
 
 #[test]
@@ -86,9 +121,18 @@ fn test_single_column_single_row() {
         truncated: false,
     };
 
-    let toon = to_toon(&result).unwrap();
-    assert!(toon.contains("[1]"), "Should contain [1], got: {}", toon);
-    assert!(toon.contains("42"), "Should contain value '42'");
+    let decoded = round_trip(&result);
+    let obj = decoded.as_object().expect("output should be a root object");
+
+    let types = obj.get("types").expect("should have 'types' key")
+        .as_array().expect("types should be an array");
+    assert_eq!(types.len(), 1);
+    assert_eq!(types[0], "INT");
+
+    let rows = obj.get("rows").expect("should have 'rows' key")
+        .as_array().expect("rows should be an array");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["count"], "42");
 }
 
 #[test]
