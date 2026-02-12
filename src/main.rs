@@ -340,9 +340,7 @@ fn output_result(
                 output::write_file(&toon, &path)?;
             }
             OutputFormat::Csv => {
-                return Err(DbtoonError::Format {
-                    message: "CSV output not yet implemented".to_string(),
-                });
+                dbtoon::format_csv::write_csv(result, &path)?;
             }
             OutputFormat::Parquet => {
                 return Err(DbtoonError::Format {

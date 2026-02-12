@@ -51,12 +51,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [US1] Write CSV writer tests in tests/unit/format_csv_test.rs covering: (1) basic output — header row from `ColumnMeta.name` fields + data rows from `CellValue::Text` values; (2) NULL values → empty fields (adjacent delimiters); (3) values containing commas, double quotes, and newlines are escaped per RFC 4180; (4) CRLF line terminator; (5) empty result set (zero rows) → header-only CSV; (6) column names with special characters are escaped. Write to a `Vec<u8>` buffer (no `tempfile` dependency needed). Tests should construct `QueryResult` directly (no DB needed).
+- [X] T007 [US1] Write CSV writer tests in tests/unit/format_csv_test.rs covering: (1) basic output — header row from `ColumnMeta.name` fields + data rows from `CellValue::Text` values; (2) NULL values → empty fields (adjacent delimiters); (3) values containing commas, double quotes, and newlines are escaped per RFC 4180; (4) CRLF line terminator; (5) empty result set (zero rows) → header-only CSV; (6) column names with special characters are escaped. Write to a `Vec<u8>` buffer (no `tempfile` dependency needed). Tests should construct `QueryResult` directly (no DB needed).
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement `write_csv(result: &QueryResult, path: &Path) -> Result<(), DbtoonError>` in src/format_csv.rs. Use `csv::WriterBuilder` with `terminator(Terminator::CRLF)` per research.md R1. Write header row from `result.columns[*].name`, then data rows mapping `CellValue::Text(s)` → `s` and `CellValue::Null` → `""`. Map `csv::Error` to `DbtoonError::Format`.
-- [ ] T009 [US1] Remove the `"not yet implemented"` placeholder for `OutputFormat::Csv` in the `output_result()` dispatch in src/main.rs — replace with `format_csv::write_csv(result, &path)?`
+- [X] T008 [US1] Implement `write_csv(result: &QueryResult, path: &Path) -> Result<(), DbtoonError>` in src/format_csv.rs. Use `csv::WriterBuilder` with `terminator(Terminator::CRLF)` per research.md R1. Write header row from `result.columns[*].name`, then data rows mapping `CellValue::Text(s)` → `s` and `CellValue::Null` → `""`. Map `csv::Error` to `DbtoonError::Format`.
+- [X] T009 [US1] Remove the `"not yet implemented"` placeholder for `OutputFormat::Csv` in the `output_result()` dispatch in src/main.rs — replace with `format_csv::write_csv(result, &path)?`
 
 **Checkpoint**: `cargo test` passes. Running with `-o results.csv` produces a valid RFC 4180 CSV. All US1 acceptance scenarios are satisfied. This is the MVP.
 
