@@ -343,9 +343,7 @@ fn output_result(
                 dbtoon::format_csv::write_csv(result, &path)?;
             }
             OutputFormat::Parquet => {
-                return Err(DbtoonError::Format {
-                    message: "Parquet output not yet implemented".to_string(),
-                });
+                dbtoon::format_parquet::write_parquet(result, &path)?;
             }
             OutputFormat::Arrow => {
                 return Err(DbtoonError::Format {
