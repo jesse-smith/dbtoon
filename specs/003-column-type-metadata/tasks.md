@@ -33,9 +33,9 @@
 
 **⚠️ CRITICAL**: User Story 1 and 2 both depend on the normalization function existing before output can include types.
 
-- [ ] T001 Write unit tests for `normalize_odbc_type()` covering all `DataType` variants in `tests/unit/format_test.rs` — tests must fail initially (function doesn't exist yet). Cover: simple types (`Integer` → `INT`), types with length (`Varchar { length: Some(255) }` → `VARCHAR(255)`), MAX types (`Varchar { length: None }` → `VARCHAR(MAX)`), precision/scale types (`Decimal { precision, scale }` → `DECIMAL(p,s)`), unknown/fallback (`Unknown` → `UNKNOWN`, `Other` → `UNKNOWN`).
-- [ ] T002 Implement `normalize_odbc_type(data_type: &DataType) -> String` in `src/backend/sqlserver.rs` — exhaustive `match` on `odbc_api::DataType` per the mapping in research.md R2. Function is `pub(crate)`. All T001 tests must pass.
-- [ ] T003 Replace `format!("{:?}", ...)` with `normalize_odbc_type()` call at the type-name assignment site (~line 126) in `src/backend/sqlserver.rs`.
+- [x] T001 Write unit tests for `normalize_odbc_type()` covering all `DataType` variants in `tests/unit/format_test.rs` — tests must fail initially (function doesn't exist yet). Cover: simple types (`Integer` → `INT`), types with length (`Varchar { length: Some(255) }` → `VARCHAR(255)`), MAX types (`Varchar { length: None }` → `VARCHAR(MAX)`), precision/scale types (`Decimal { precision, scale }` → `DECIMAL(p,s)`), unknown/fallback (`Unknown` → `UNKNOWN`, `Other` → `UNKNOWN`).
+- [x] T002 Implement `normalize_odbc_type(data_type: &DataType) -> String` in `src/backend/sqlserver.rs` — exhaustive `match` on `odbc_api::DataType` per the mapping in research.md R2. Function is `pub(crate)`. All T001 tests must pass.
+- [x] T003 Replace `format!("{:?}", ...)` with `normalize_odbc_type()` call at the type-name assignment site (~line 126) in `src/backend/sqlserver.rs`.
 
 **Checkpoint**: `normalize_odbc_type()` works for all ODBC type variants. `cargo test` passes. SQL Server backend now populates `ColumnMeta.type_name` with standard SQL strings.
 

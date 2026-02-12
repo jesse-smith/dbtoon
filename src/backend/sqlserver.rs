@@ -2,7 +2,46 @@ use crate::backend::{Backend, CellValue, ColumnMeta, QueryResult};
 use crate::config::SqlServerAuth;
 use crate::error::DbtoonError;
 use odbc_api::buffers::{BufferDesc, ColumnarAnyBuffer};
-use odbc_api::{ColumnDescription, ConnectionOptions, Cursor, Environment, Nullability, ResultSetMetadata};
+use odbc_api::{
+    ColumnDescription, ConnectionOptions, Cursor, DataType, Environment, Nullability,
+    ResultSetMetadata,
+};
+
+/// Normalize an ODBC `DataType` enum value to a standard SQL type string.
+pub fn normalize_odbc_type(data_type: &DataType) -> String {
+    match data_type {
+        DataType::Unknown => "UNKNOWN".to_string(),
+        DataType::Char { length: Some(n) } => format!("CHAR({})", n),
+        DataType::Char { length: None } => "CHAR".to_string(),
+        DataType::WChar { length: Some(n) } => format!("NCHAR({})", n),
+        DataType::WChar { length: None } => "NCHAR".to_string(),
+        DataType::Varchar { length: Some(n) } => format!("VARCHAR({})", n),
+        DataType::Varchar { length: None } => "VARCHAR(MAX)".to_string(),
+        DataType::WVarchar { length: Some(n) } => format!("NVARCHAR({})", n),
+        DataType::WVarchar { length: None } => "NVARCHAR(MAX)".to_string(),
+        DataType::LongVarchar { .. } => "VARCHAR(MAX)".to_string(),
+        DataType::WLongVarchar { .. } => "NVARCHAR(MAX)".to_string(),
+        DataType::Integer => "INT".to_string(),
+        DataType::SmallInt => "SMALLINT".to_string(),
+        DataType::BigInt => "BIGINT".to_string(),
+        DataType::TinyInt => "TINYINT".to_string(),
+        DataType::Float { precision } => format!("FLOAT({})", precision),
+        DataType::Real => "REAL".to_string(),
+        DataType::Double => "FLOAT".to_string(),
+        DataType::Numeric { precision, scale } => format!("NUMERIC({},{})", precision, scale),
+        DataType::Decimal { precision, scale } => format!("DECIMAL({},{})", precision, scale),
+        DataType::Date => "DATE".to_string(),
+        DataType::Time { precision } => format!("TIME({})", precision),
+        DataType::Timestamp { precision } => format!("DATETIME2({})", precision),
+        DataType::Bit => "BIT".to_string(),
+        DataType::Binary { length: Some(n) } => format!("BINARY({})", n),
+        DataType::Binary { length: None } => "BINARY".to_string(),
+        DataType::Varbinary { length: Some(n) } => format!("VARBINARY({})", n),
+        DataType::Varbinary { length: None } => "VARBINARY(MAX)".to_string(),
+        DataType::LongVarbinary { .. } => "VARBINARY(MAX)".to_string(),
+        DataType::Other { .. } => "UNKNOWN".to_string(),
+    }
+}
 
 pub struct SqlServerBackend {
     server: String,
@@ -123,7 +162,7 @@ impl Backend for SqlServerBackend {
 
                 columns.push(ColumnMeta {
                     name,
-                    type_name: format!("{:?}", col_desc.data_type),
+                    type_name: normalize_odbc_type(&col_desc.data_type),
                 });
 
                 let nullable = col_desc.nullability != Nullability::NoNulls;
