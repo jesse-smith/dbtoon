@@ -1,5 +1,7 @@
 # Tasks: Standard Databricks Environment Variable Fallback
 
+> **STATUS: COMPLETE** | Merged: 2026-02-12 | Branch: `002-std-env-vars`
+
 **Input**: Design documents from `/specs/002-std-env-vars/`
 **Prerequisites**: plan.md (required), spec.md (required), research.md, data-model.md
 

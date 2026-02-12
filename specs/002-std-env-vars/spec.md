@@ -1,8 +1,10 @@
 # Feature Specification: Standard Databricks Environment Variable Fallback
 
+> **STATUS: COMPLETE** | Merged: 2026-02-12 | Branch: `002-std-env-vars`
+
 **Feature Branch**: `002-std-env-vars`
 **Created**: 2026-02-11
-**Status**: Draft
+**Status**: Complete
 **Input**: User description: "Address GitHub issue #2 — use standard Databricks environment variables as fallback when dbtoon-specific vars are not set, and add tests for env var vs TOML default resolution."
 **Related Issue**: [#2 — Use Standard Databricks Environment Variables](https://github.com/jesse-smith/dbtoon/issues/2)
 

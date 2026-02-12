@@ -1,5 +1,7 @@
 # Implementation Plan: Standard Databricks Environment Variable Fallback
 
+> **STATUS: COMPLETE** | Merged: 2026-02-12 | Branch: `002-std-env-vars`
+
 **Branch**: `002-std-env-vars` | **Date**: 2026-02-11 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/002-std-env-vars/spec.md`
 

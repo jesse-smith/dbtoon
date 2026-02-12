@@ -5,6 +5,7 @@ Central registry of all features and their current status.
 | Feature ID | Name | Branch | Status | Merged Date | Notes |
 |------------|------|--------|--------|-------------|-------|
 | 001 | Multi-Database Query CLI | `001-multi-db-query` | Complete | 2026-02-11 | 30 tasks, 6 user stories |
+| 002 | Standard Databricks Environment Variable Fallback | `002-std-env-vars` | Complete | 2026-02-12 | 24 tasks |
 
 ## Status Definitions
 
