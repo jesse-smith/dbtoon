@@ -346,9 +346,7 @@ fn output_result(
                 dbtoon::format_parquet::write_parquet(result, &path)?;
             }
             OutputFormat::Arrow => {
-                return Err(DbtoonError::Format {
-                    message: "Arrow IPC output not yet implemented".to_string(),
-                });
+                dbtoon::format_arrow::write_arrow(result, &path)?;
             }
         }
         output::print_summary(result.rows.len(), &path, result.truncated);

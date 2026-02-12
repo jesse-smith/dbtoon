@@ -98,12 +98,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T016 [US3] Write Arrow IPC writer tests in tests/unit/format_arrow_test.rs covering: (1) write an Arrow IPC file from a QueryResult and read it back with `arrow::ipc::reader::FileReader` — verify column names, types, and values; (2) NULL values are native Arrow nulls; (3) empty result set → valid Arrow IPC file with schema and zero rows.
+- [X] T016 [US3] Write Arrow IPC writer tests in tests/unit/format_arrow_test.rs covering: (1) write an Arrow IPC file from a QueryResult and read it back with `arrow::ipc::reader::FileReader` — verify column names, types, and values; (2) NULL values are native Arrow nulls; (3) empty result set → valid Arrow IPC file with schema and zero rows.
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Implement `write_arrow(result: &QueryResult, path: &Path) -> Result<(), DbtoonError>` in src/format_arrow.rs. Call `format_columnar::build_record_batch()`, create a `File`, write with `arrow::ipc::writer::FileWriter`. Map `ArrowError` to `DbtoonError::Format`.
-- [ ] T018 [US3] Remove the `"not yet implemented"` placeholder for `OutputFormat::Arrow` in the `output_result()` dispatch in src/main.rs — replace with `format_arrow::write_arrow(result, &path)?`
+- [X] T017 [US3] Implement `write_arrow(result: &QueryResult, path: &Path) -> Result<(), DbtoonError>` in src/format_arrow.rs. Call `format_columnar::build_record_batch()`, create a `File`, write with `arrow::ipc::writer::FileWriter`. Map `ArrowError` to `DbtoonError::Format`.
+- [X] T018 [US3] Remove the `"not yet implemented"` placeholder for `OutputFormat::Arrow` in the `output_result()` dispatch in src/main.rs — replace with `format_arrow::write_arrow(result, &path)?`
 
 **Checkpoint**: `cargo test` passes. Running with `-o results.arrow` produces a valid Arrow IPC file. All US3 acceptance scenarios are satisfied.
 
