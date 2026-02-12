@@ -1,5 +1,7 @@
 # Implementation Plan: Add Column Types to Output Metadata
 
+> **STATUS: COMPLETE** | Merged: 2026-02-12 | Branch: `003-column-type-metadata`
+
 **Branch**: `003-column-type-metadata` | **Date**: 2026-02-12 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/003-column-type-metadata/spec.md`
 

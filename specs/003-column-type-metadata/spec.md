@@ -1,8 +1,10 @@
 # Feature Specification: Add Column Types to Output Metadata
 
+> **STATUS: COMPLETE** | Merged: 2026-02-12 | Branch: `003-column-type-metadata`
+
 **Feature Branch**: `003-column-type-metadata`
 **Created**: 2026-02-12
-**Status**: Draft
+**Status**: Complete
 **Input**: User description: "Add SQL column type metadata to TOON query output"
 **GitHub Issue**: #5
 

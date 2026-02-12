@@ -1,5 +1,7 @@
 # Tasks: Add Column Types to Output Metadata
 
+> **STATUS: COMPLETE** | Merged: 2026-02-12 | Branch: `003-column-type-metadata`
+
 **Input**: Design documents from `/specs/003-column-type-metadata/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
