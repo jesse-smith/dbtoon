@@ -2,6 +2,7 @@ use clap::Parser;
 use dbtoon::cli::{self, Cli, Command};
 use dbtoon::error::DbtoonError;
 use dbtoon::verbose::{self, Timer};
+use dbtoon::format_detect::{self, OutputFormat};
 use dbtoon::{backend, config, format, output, validation};
 use std::process;
 
@@ -69,12 +70,26 @@ async fn exec_read(
         }
     }
 
+    // Detect output format before query (fail-fast on bad extension)
+    let format_info = if let Some(ref path) = app_config.output_file {
+        Some(format_detect::detect_format(path)?)
+    } else {
+        None
+    };
+
     // Execute query
     let result = execute_query(&app_config, &sql, verbose).await?;
 
     // Format and output
-    verbose::emit(verbose, "formatting TOON output...");
-    output_result(&app_config, &result)?;
+    let format_label = match &format_info {
+        Some((OutputFormat::Toon, _)) => "TOON",
+        Some((OutputFormat::Csv, _)) => "CSV",
+        Some((OutputFormat::Parquet, _)) => "Parquet",
+        Some((OutputFormat::Arrow, _)) => "Arrow IPC",
+        None => "TOON",
+    };
+    verbose::emit(verbose, &format!("formatting {format_label} output..."));
+    output_result(&app_config, &result, format_info)?;
 
     Ok(())
 }
@@ -96,13 +111,27 @@ async fn exec_write(
 
     let sql = resolve_sql(args)?;
 
+    // Detect output format before query (fail-fast on bad extension)
+    let format_info = if let Some(ref path) = app_config.output_file {
+        Some(format_detect::detect_format(path)?)
+    } else {
+        None
+    };
+
     verbose::emit(verbose, "executing write query (validation skipped)...");
 
     // Skip validation — execute directly
     let result = execute_query(&app_config, &sql, verbose).await?;
 
-    verbose::emit(verbose, "formatting TOON output...");
-    output_result(&app_config, &result)?;
+    let format_label = match &format_info {
+        Some((OutputFormat::Toon, _)) => "TOON",
+        Some((OutputFormat::Csv, _)) => "CSV",
+        Some((OutputFormat::Parquet, _)) => "Parquet",
+        Some((OutputFormat::Arrow, _)) => "Arrow IPC",
+        None => "TOON",
+    };
+    verbose::emit(verbose, &format!("formatting {format_label} output..."));
+    output_result(&app_config, &result, format_info)?;
 
     Ok(())
 }
@@ -298,17 +327,31 @@ fn clone_secret(secret: &secrecy::SecretString) -> secrecy::SecretString {
 fn output_result(
     app_config: &config::AppConfig,
     result: &backend::QueryResult,
+    format_info: Option<(OutputFormat, std::path::PathBuf)>,
 ) -> Result<(), DbtoonError> {
-    let toon = format::to_toon(result)?;
-
-    if let Some(ref path) = app_config.output_file {
+    if let Some((format, path)) = format_info {
         verbose::emit(
             app_config.verbose,
             &format!("writing output to {}...", path.display()),
         );
-        output::write_file(&toon, path)?;
-        output::print_summary(result.rows.len(), path, result.truncated);
+        match format {
+            OutputFormat::Toon => {
+                let toon = format::to_toon(result)?;
+                output::write_file(&toon, &path)?;
+            }
+            OutputFormat::Csv => {
+                dbtoon::format_csv::write_csv(result, &path)?;
+            }
+            OutputFormat::Parquet => {
+                dbtoon::format_parquet::write_parquet(result, &path)?;
+            }
+            OutputFormat::Arrow => {
+                dbtoon::format_arrow::write_arrow(result, &path)?;
+            }
+        }
+        output::print_summary(result.rows.len(), &path, result.truncated);
     } else {
+        let toon = format::to_toon(result)?;
         output::print_result(&toon);
         if result.truncated
             && let Some(limit) = app_config.default_row_limit
