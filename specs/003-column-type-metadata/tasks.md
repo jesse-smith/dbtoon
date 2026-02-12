@@ -69,7 +69,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] Verify end-to-end normalization in `tests/unit/format_test.rs`: (a) construct a `QueryResult` with SQL Server–style normalized type names (e.g., `VARCHAR(255)`, `INT`) and verify the TOON output contains those exact strings (no debug-format leakage); (b) construct a `QueryResult` with Databricks-style type names (e.g., `STRING`, `DECIMAL(10,2)`) and verify they appear unchanged in output (FR-006 passthrough). Run `cargo test` and confirm both pass.
+- [x] T006 [US2] Verify end-to-end normalization in `tests/unit/format_test.rs`: (a) construct a `QueryResult` with SQL Server–style normalized type names (e.g., `VARCHAR(255)`, `INT`) and verify the TOON output contains those exact strings (no debug-format leakage); (b) construct a `QueryResult` with Databricks-style type names (e.g., `STRING`, `DECIMAL(10,2)`) and verify they appear unchanged in output (FR-006 passthrough). Run `cargo test` and confirm both pass.
 
 **Checkpoint**: User Story 2 complete. SQL Server types are normalized. Databricks types pass through unchanged (FR-006 — no code changes needed, already standard).
 
@@ -83,7 +83,7 @@
 
 ### Tests for User Story 3
 
-- [ ] T007 [US3] Add or verify a zero-row format test in `tests/unit/format_test.rs`: construct a `QueryResult` with columns but empty rows, call `to_toon()`, and verify the output contains `types` with correct type names and `rows` as an empty array. Test must pass (T005 implementation should already handle this — if it fails, fix `to_toon()`).
+- [x] T007 [US3] Add or verify a zero-row format test in `tests/unit/format_test.rs`: construct a `QueryResult` with columns but empty rows, call `to_toon()`, and verify the output contains `types` with correct type names and `rows` as an empty array. Test must pass (T005 implementation should already handle this — if it fails, fix `to_toon()`).
 
 **Checkpoint**: User Story 3 complete. Zero-row results include type metadata. All format tests pass.
 
@@ -93,7 +93,7 @@
 
 **Purpose**: Final validation across all stories
 
-- [ ] T008 Run `cargo clippy` and fix any warnings in modified files (`src/backend/sqlserver.rs`, `src/format.rs`, `tests/unit/format_test.rs`). Then run `cargo test` full suite — all tests pass, no regressions. Matches quickstart.md verification steps.
+- [x] T008 Run `cargo clippy` and fix any warnings in modified files (`src/backend/sqlserver.rs`, `src/format.rs`, `tests/unit/format_test.rs`). Then run `cargo test` full suite — all tests pass, no regressions. Matches quickstart.md verification steps.
 
 ---
 

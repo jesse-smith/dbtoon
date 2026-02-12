@@ -141,6 +141,79 @@ fn test_toon_kv() {
     assert_eq!(kv, "truncated: true\nmessage: Showing 500 rows.");
 }
 
+// --- US2: End-to-end normalization verification ---
+
+#[test]
+fn test_sqlserver_normalized_types_in_output() {
+    let result = QueryResult {
+        columns: vec![
+            ColumnMeta { name: "id".to_string(), type_name: "INT".to_string() },
+            ColumnMeta { name: "name".to_string(), type_name: "VARCHAR(255)".to_string() },
+            ColumnMeta { name: "balance".to_string(), type_name: "DECIMAL(18,2)".to_string() },
+            ColumnMeta { name: "created".to_string(), type_name: "DATETIME2(7)".to_string() },
+            ColumnMeta { name: "notes".to_string(), type_name: "NVARCHAR(MAX)".to_string() },
+        ],
+        rows: vec![
+            vec![
+                CellValue::Text("1".to_string()),
+                CellValue::Text("Alice".to_string()),
+                CellValue::Text("1234.56".to_string()),
+                CellValue::Text("2026-01-01".to_string()),
+                CellValue::Text("test".to_string()),
+            ],
+        ],
+        total_rows: None,
+        truncated: false,
+    };
+
+    let decoded = round_trip(&result);
+    let obj = decoded.as_object().expect("output should be a root object");
+    let types = obj.get("types").expect("should have 'types' key")
+        .as_array().expect("types should be an array");
+
+    assert_eq!(types[0], "INT");
+    assert_eq!(types[1], "VARCHAR(255)");
+    assert_eq!(types[2], "DECIMAL(18,2)");
+    assert_eq!(types[3], "DATETIME2(7)");
+    assert_eq!(types[4], "NVARCHAR(MAX)");
+}
+
+#[test]
+fn test_databricks_passthrough_types_in_output() {
+    let result = QueryResult {
+        columns: vec![
+            ColumnMeta { name: "id".to_string(), type_name: "BIGINT".to_string() },
+            ColumnMeta { name: "name".to_string(), type_name: "STRING".to_string() },
+            ColumnMeta { name: "price".to_string(), type_name: "DECIMAL(10,2)".to_string() },
+            ColumnMeta { name: "active".to_string(), type_name: "BOOLEAN".to_string() },
+            ColumnMeta { name: "tags".to_string(), type_name: "ARRAY<STRING>".to_string() },
+        ],
+        rows: vec![
+            vec![
+                CellValue::Text("100".to_string()),
+                CellValue::Text("Widget".to_string()),
+                CellValue::Text("9.99".to_string()),
+                CellValue::Text("true".to_string()),
+                CellValue::Text("[\"a\",\"b\"]".to_string()),
+            ],
+        ],
+        total_rows: None,
+        truncated: false,
+    };
+
+    let decoded = round_trip(&result);
+    let obj = decoded.as_object().expect("output should be a root object");
+    let types = obj.get("types").expect("should have 'types' key")
+        .as_array().expect("types should be an array");
+
+    // FR-006: Databricks types pass through unchanged
+    assert_eq!(types[0], "BIGINT");
+    assert_eq!(types[1], "STRING");
+    assert_eq!(types[2], "DECIMAL(10,2)");
+    assert_eq!(types[3], "BOOLEAN");
+    assert_eq!(types[4], "ARRAY<STRING>");
+}
+
 // --- normalize_odbc_type tests ---
 
 #[test]
