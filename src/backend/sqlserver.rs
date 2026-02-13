@@ -2,6 +2,7 @@ use crate::backend::{Backend, CellValue, ColumnMeta, QueryResult};
 use crate::config::SqlServerAuth;
 use crate::error::DbtoonError;
 use futures_util::TryStreamExt;
+use secrecy::ExposeSecret;
 use tiberius::{AuthMethod, Client, ColumnData, ColumnType, Config, EncryptionLevel};
 use tokio::net::TcpStream;
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
@@ -29,7 +30,37 @@ impl SqlServerBackend {
     }
 
     fn build_tiberius_config(&self) -> Result<Config, DbtoonError> {
-        todo!()
+        let (host, port, instance) = parse_server_address(&self.server)?;
+
+        let mut config = Config::new();
+        config.host(&host);
+        config.port(port.unwrap_or(1433));
+        if let Some(ref inst) = instance {
+            config.instance_name(inst);
+        }
+        if let Some(ref db) = self.database {
+            config.database(db);
+        }
+
+        match &self.auth {
+            SqlServerAuth::WindowsIntegrated => {
+                config.authentication(AuthMethod::Integrated);
+            }
+            SqlServerAuth::SqlLogin { username, password } => {
+                config.authentication(AuthMethod::sql_server(
+                    username,
+                    password.expose_secret(),
+                ));
+            }
+        }
+
+        if self.trust_server_certificate {
+            config.trust_cert();
+        }
+
+        config.encryption(EncryptionLevel::Required);
+
+        Ok(config)
     }
 }
 
