@@ -93,7 +93,7 @@ A team member reads the project README to learn how to install dbtoon or update 
 - **FR-003**: Each GitHub Release MUST include platform-appropriate installer scripts (shell script for macOS/Linux, PowerShell script for Windows).
 - **FR-004**: The installer scripts MUST place the binary on the user's PATH without requiring manual configuration.
 - **FR-005**: The tool MUST provide an `update` subcommand that checks for and installs newer versions from GitHub Releases.
-- **FR-006**: The `update` subcommand MUST report the current version, the available version, and whether an update was performed.
+- **FR-006**: The `update` subcommand MUST report the current version, the available version, and whether an update was performed (when version information is available; see contracts/cli-update.md for per-condition output).
 - **FR-007**: The `update` subcommand MUST NOT downgrade the installed version (it should only offer the latest stable release).
 - **FR-008**: The project README MUST include installation instructions for all supported platforms.
 - **FR-009**: The project README MUST document the `update` subcommand.
