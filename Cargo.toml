@@ -2,6 +2,7 @@
 name = "dbtoon"
 version = "0.1.0"
 edition = "2024"
+repository = "https://github.com/jesse-smith/dbtoon"
 
 [dependencies]
 odbc-api = "20"
@@ -21,7 +22,13 @@ dotenvy = "0.15"
 csv = "1.4"
 arrow = { version = "57", default-features = false, features = ["ipc"] }
 parquet = { version = "57", default-features = false, features = ["arrow"] }
+axoupdater = { version = "0.9", default-features = false, features = ["github_releases", "blocking"] }
 
 [dev-dependencies]
 odbc-api = "20"
 secrecy = "0.10"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
