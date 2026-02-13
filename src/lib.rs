@@ -10,5 +10,6 @@ pub mod format_detect;
 pub mod format_parquet;
 pub mod masking;
 pub mod output;
+pub mod update;
 pub mod validation;
 pub mod verbose;

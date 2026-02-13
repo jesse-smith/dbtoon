@@ -12,12 +12,43 @@ A multi-database query CLI that outputs results in [TOON format](https://github.
 - **TOML config profiles** with env var and CLI flag overrides
 - **Credential masking** by default (secrets redacted in diagnostics)
 
-## Prerequisites
+## Installation
 
-- Rust (stable, 2024 edition)
+### macOS / Linux
+
+```sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/jesse-smith/dbtoon/releases/latest/download/dbtoon-installer.sh | sh
+```
+
+### Windows (PowerShell)
+
+```powershell
+powershell -ExecutionPolicy Bypass -c "irm https://github.com/jesse-smith/dbtoon/releases/latest/download/dbtoon-installer.ps1 | iex"
+```
+
+### From source
+
+Requires Rust (stable, 2024 edition):
+
+```sh
+cargo install dbtoon
+```
+
+### Prerequisites
+
 - [ODBC Driver 18 for SQL Server](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server) (for SQL Server backend)
 
-## Build
+## Updating
+
+If you installed dbtoon via the shell or PowerShell installer, you can update to the latest release with:
+
+```sh
+dbtoon update
+```
+
+If you installed via `cargo install`, update with `cargo install dbtoon` instead.
+
+## Build from source
 
 ```sh
 cargo build --release

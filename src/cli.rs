@@ -33,6 +33,9 @@ pub enum Command {
     /// List available Databricks SQL warehouses
     #[command(name = "list-warehouses")]
     ListWarehouses(ListWarehousesArgs),
+
+    /// Update dbtoon to the latest release
+    Update,
 }
 
 #[derive(Parser, Debug)]

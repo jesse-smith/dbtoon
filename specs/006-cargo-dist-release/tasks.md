@@ -15,8 +15,8 @@
 
 **Purpose**: Initialize cargo-dist tooling and add the new runtime dependency
 
-- [ ] T001 Run `cargo dist init` selecting V1 config format (dist-workspace.toml), GitHub CI provider, 4 targets (x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu, aarch64-apple-darwin, x86_64-apple-darwin), and shell + powershell installers — creates dist-workspace.toml, .github/workflows/release.yml, and adds `[profile.dist]` to Cargo.toml. After init, verify `install-path = "CARGO_HOME"` is set in dist-workspace.toml (per research R-002)
-- [ ] T002 Add `axoupdater = { version = "0.9", default-features = false, features = ["github_releases", "blocking"] }` to `[dependencies]` in Cargo.toml
+- [x] T001 Run `cargo dist init` selecting V1 config format (dist-workspace.toml), GitHub CI provider, 4 targets (x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu, aarch64-apple-darwin, x86_64-apple-darwin), and shell + powershell installers — creates dist-workspace.toml, .github/workflows/release.yml, and adds `[profile.dist]` to Cargo.toml. After init, verify `install-path = "CARGO_HOME"` is set in dist-workspace.toml (per research R-002)
+- [x] T002 Add `axoupdater = { version = "0.9", default-features = false, features = ["github_releases", "blocking"] }` to `[dependencies]` in Cargo.toml
 
 ---
 
@@ -28,9 +28,9 @@
 
 ### Implementation for US1/US2
 
-- [ ] T003 [US2] Add ODBC system build dependencies (`[dist.dependencies.apt]` unixodbc-dev = { stage = ["build"] }, `[dist.dependencies.homebrew]` unixodbc = { stage = ["build"] }) to dist-workspace.toml
-- [ ] T004 [US2] Regenerate release workflow to apply configuration changes via `cargo dist generate` in .github/workflows/release.yml
-- [ ] T005 [US1] Validate release plan produces all 4 target artifacts and 2 installer scripts via `cargo dist plan`. Also verify `pr-run-mode = "plan"` is set in dist-workspace.toml to ensure the release workflow only runs a lightweight check on PRs (FR-010)
+- [x] T003 [US2] Add ODBC system build dependencies (`[dist.dependencies.apt]` unixodbc-dev = { stage = ["build"] }, `[dist.dependencies.homebrew]` unixodbc = { stage = ["build"] }) to dist-workspace.toml
+- [x] T004 [US2] Regenerate release workflow to apply configuration changes via `cargo dist generate` in .github/workflows/release.yml
+- [x] T005 [US1] Validate release plan produces all 4 target artifacts and 2 installer scripts via `cargo dist plan`. Also verify `pr-run-mode = "plan"` is set in dist-workspace.toml to ensure the release workflow only runs a lightweight check on PRs (FR-010)
 
 **Checkpoint**: At this point, pushing a version tag should build and publish binaries for all 4 platforms with working installer scripts. Both US1 and US2 are delivered.
 
@@ -44,10 +44,10 @@
 
 ### Implementation for US3
 
-- [ ] T006 [P] [US3] Define `pub fn run_update() -> Result<()>` interface with `todo!()` stub and write failing unit tests for no-receipt and already-current error paths in src/update.rs (`#[cfg(test)]` module) — RED phase
-- [ ] T007 [P] [US3] Add `Update` variant with `/// Update dbtoon to the latest release` doc comment to Command enum in src/cli.rs
-- [ ] T008 [US3] Implement update logic: receipt loading, version check, and self-update execution per contracts/cli-update.md behavior table (all 7 conditions) in src/update.rs — tests from T006 must pass (GREEN phase). Edge cases 2–3 from spec (permissions error, partial release) are handled by axoupdater/cargo-dist, not dbtoon code.
-- [ ] T009 [US3] Add match arm for `Command::Update` calling `update::run_update()` (no config/backend needed) in src/main.rs
+- [x] T006 [P] [US3] Define `pub fn run_update() -> Result<()>` interface with `todo!()` stub and write failing unit tests for no-receipt and already-current error paths in src/update.rs (`#[cfg(test)]` module) — RED phase
+- [x] T007 [P] [US3] Add `Update` variant with `/// Update dbtoon to the latest release` doc comment to Command enum in src/cli.rs
+- [x] T008 [US3] Implement update logic: receipt loading, version check, and self-update execution per contracts/cli-update.md behavior table (all 7 conditions) in src/update.rs — tests from T006 must pass (GREEN phase). Edge cases 2–3 from spec (permissions error, partial release) are handled by axoupdater/cargo-dist, not dbtoon code.
+- [x] T009 [US3] Add match arm for `Command::Update` calling `update::run_update()` (no config/backend needed) in src/main.rs
 
 **Checkpoint**: `dbtoon update` works for all 7 conditions in the CLI contract. Unit tests pass for error paths.
 
@@ -61,8 +61,8 @@
 
 ### Implementation for US4
 
-- [ ] T010 [US4] Add Installation section with platform-specific one-liner commands (shell installer for macOS/Linux, PowerShell installer for Windows) to README.md
-- [ ] T011 [US4] Add Updating section documenting `dbtoon update` usage and behavior to README.md
+- [x] T010 [US4] Add Installation section with platform-specific one-liner commands (shell installer for macOS/Linux, PowerShell installer for Windows) to README.md
+- [x] T011 [US4] Add Updating section documenting `dbtoon update` usage and behavior to README.md
 
 **Checkpoint**: README has complete install and update instructions for all platforms.
 
@@ -72,7 +72,7 @@
 
 **Purpose**: Final validation across all stories
 
-- [ ] T012 Run full validation: `cargo test`, `cargo clippy --all-targets -- -D warnings`, and `cargo dist plan`
+- [x] T012 Run full validation: `cargo test`, `cargo clippy --all-targets -- -D warnings`, and `cargo dist plan`
 
 ---
 

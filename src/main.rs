@@ -23,6 +23,9 @@ async fn main() {
         Command::ListWarehouses(ref args) => {
             list_warehouses(args, cli.verbose, cli.show_secrets, cli.config.as_ref()).await
         }
+        Command::Update => dbtoon::update::run_update().map_err(|e| DbtoonError::Config {
+            message: e.to_string(),
+        }),
     };
 
     if let Err(err) = result {
