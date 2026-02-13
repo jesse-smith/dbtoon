@@ -7,4 +7,5 @@ mod format_parquet_test;
 mod format_test;
 mod masking_test;
 mod output_test;
+mod sqlserver_test;
 mod validation_test;
