@@ -101,7 +101,183 @@ pub fn normalize_tiberius_type(col_type: ColumnType) -> String {
 
 /// Convert a tiberius ColumnData value to a CellValue string.
 pub fn column_data_to_string(data: &ColumnData<'_>) -> CellValue {
-    todo!()
+    match data {
+        // Integer types
+        ColumnData::U8(Some(v)) => CellValue::Text(v.to_string()),
+        ColumnData::I16(Some(v)) => CellValue::Text(v.to_string()),
+        ColumnData::I32(Some(v)) => CellValue::Text(v.to_string()),
+        ColumnData::I64(Some(v)) => CellValue::Text(v.to_string()),
+        // Float types
+        ColumnData::F32(Some(v)) => CellValue::Text(v.to_string()),
+        ColumnData::F64(Some(v)) => CellValue::Text(v.to_string()),
+        // Bit type — 0/1 not true/false
+        ColumnData::Bit(Some(v)) => CellValue::Text(if *v { "1" } else { "0" }.to_string()),
+        // String — as-is
+        ColumnData::String(Some(s)) => CellValue::Text(s.to_string()),
+        // Guid — hyphenated lowercase UUID
+        ColumnData::Guid(Some(g)) => CellValue::Text(g.to_string()),
+        // Binary — 0x hex prefix, uppercase hex digits
+        ColumnData::Binary(Some(b)) => {
+            let hex: String = b.iter().map(|byte| format!("{:02X}", byte)).collect();
+            CellValue::Text(format!("0x{}", hex))
+        }
+        // Numeric — preserve trailing zeros via scale
+        ColumnData::Numeric(Some(n)) => {
+            if n.scale() == 0 {
+                CellValue::Text(n.value().to_string())
+            } else {
+                CellValue::Text(n.to_string())
+            }
+        }
+        // DateTime — YYYY-MM-DD HH:MM:SS.mmm (epoch: 1900-01-01, 1/300 sec)
+        ColumnData::DateTime(Some(dt)) => {
+            let (y, m, d) = days_to_ymd(dt.days() as i64 - EPOCH_1900_UNIX_DAYS);
+            let frags = dt.seconds_fragments() as u64;
+            let total_ms = (frags * 1000 + 150) / 300;
+            let hours = total_ms / 3_600_000;
+            let minutes = (total_ms % 3_600_000) / 60_000;
+            let seconds = (total_ms % 60_000) / 1_000;
+            let millis = total_ms % 1_000;
+            CellValue::Text(format!(
+                "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
+                y, m, d, hours, minutes, seconds, millis
+            ))
+        }
+        // SmallDateTime — YYYY-MM-DD HH:MM:SS (epoch: 1900-01-01, minutes)
+        ColumnData::SmallDateTime(Some(dt)) => {
+            let (y, m, d) = days_to_ymd(dt.days() as i64 - EPOCH_1900_UNIX_DAYS);
+            let total_minutes = dt.seconds_fragments() as u64;
+            let hours = total_minutes / 60;
+            let minutes = total_minutes % 60;
+            CellValue::Text(format!(
+                "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+                y, m, d, hours, minutes, 0
+            ))
+        }
+        // Date — YYYY-MM-DD (epoch: 0001-01-01)
+        ColumnData::Date(Some(date)) => {
+            let (y, m, d) = days_to_ymd(date.days() as i64 - EPOCH_YEAR1_UNIX_DAYS);
+            CellValue::Text(format!("{:04}-{:02}-{:02}", y, m, d))
+        }
+        // Time — HH:MM:SS.nnnnnnn (scale-dependent fractional seconds)
+        ColumnData::Time(Some(t)) => {
+            let increments = t.increments();
+            let scale = t.scale() as u32;
+            let divisor = 10u64.pow(scale);
+            let total_seconds = increments / divisor;
+            let frac = increments % divisor;
+            let hours = total_seconds / 3600;
+            let minutes = (total_seconds % 3600) / 60;
+            let seconds = total_seconds % 60;
+            CellValue::Text(format!(
+                "{:02}:{:02}:{:02}.{:0width$}",
+                hours,
+                minutes,
+                seconds,
+                frac,
+                width = scale as usize
+            ))
+        }
+        // DateTime2 — YYYY-MM-DD HH:MM:SS.nnnnnnn
+        ColumnData::DateTime2(Some(dt2)) => {
+            let date = dt2.date();
+            let time = dt2.time();
+            let (y, m, d) = days_to_ymd(date.days() as i64 - EPOCH_YEAR1_UNIX_DAYS);
+            let increments = time.increments();
+            let scale = time.scale() as u32;
+            let divisor = 10u64.pow(scale);
+            let total_seconds = increments / divisor;
+            let frac = increments % divisor;
+            let hours = total_seconds / 3600;
+            let minutes = (total_seconds % 3600) / 60;
+            let seconds = total_seconds % 60;
+            CellValue::Text(format!(
+                "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:0width$}",
+                y,
+                m,
+                d,
+                hours,
+                minutes,
+                seconds,
+                frac,
+                width = scale as usize
+            ))
+        }
+        // DateTimeOffset — YYYY-MM-DD HH:MM:SS.nnnnnnn +HH:MM
+        ColumnData::DateTimeOffset(Some(dto)) => {
+            let dt2 = dto.datetime2();
+            let date = dt2.date();
+            let time = dt2.time();
+            let (y, m, d) = days_to_ymd(date.days() as i64 - EPOCH_YEAR1_UNIX_DAYS);
+            let increments = time.increments();
+            let scale = time.scale() as u32;
+            let divisor = 10u64.pow(scale);
+            let total_seconds = increments / divisor;
+            let frac = increments % divisor;
+            let hours = total_seconds / 3600;
+            let minutes = (total_seconds % 3600) / 60;
+            let seconds = total_seconds % 60;
+            let offset = dto.offset();
+            let sign = if offset < 0 { '-' } else { '+' };
+            let off_hours = offset.unsigned_abs() / 60;
+            let off_minutes = offset.unsigned_abs() % 60;
+            CellValue::Text(format!(
+                "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:0width$} {}{:02}:{:02}",
+                y,
+                m,
+                d,
+                hours,
+                minutes,
+                seconds,
+                frac,
+                sign,
+                off_hours,
+                off_minutes,
+                width = scale as usize
+            ))
+        }
+        // Xml — as-is
+        ColumnData::Xml(Some(x)) => CellValue::Text(x.to_string()),
+        // All None variants → Null
+        ColumnData::U8(None)
+        | ColumnData::I16(None)
+        | ColumnData::I32(None)
+        | ColumnData::I64(None)
+        | ColumnData::F32(None)
+        | ColumnData::F64(None)
+        | ColumnData::Bit(None)
+        | ColumnData::String(None)
+        | ColumnData::Guid(None)
+        | ColumnData::Binary(None)
+        | ColumnData::Numeric(None)
+        | ColumnData::DateTime(None)
+        | ColumnData::SmallDateTime(None)
+        | ColumnData::Date(None)
+        | ColumnData::Time(None)
+        | ColumnData::DateTime2(None)
+        | ColumnData::DateTimeOffset(None)
+        | ColumnData::Xml(None) => CellValue::Null,
+    }
+}
+
+/// Days from 1900-01-01 to Unix epoch (1970-01-01).
+const EPOCH_1900_UNIX_DAYS: i64 = 25567;
+/// Days from 0001-01-01 to Unix epoch (1970-01-01).
+const EPOCH_YEAR1_UNIX_DAYS: i64 = 719162;
+
+/// Convert Unix-epoch days to (year, month, day) using Hinnant's civil algorithm.
+fn days_to_ymd(unix_days: i64) -> (i32, u32, u32) {
+    let z = unix_days + 719468;
+    let era = (if z >= 0 { z } else { z - 146096 }) / 146097;
+    let doe = (z - era * 146097) as u32;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe as i64 + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = if m <= 2 { y + 1 } else { y };
+    (y as i32, m, d)
 }
 
 /// Query sys.dm_exec_describe_first_result_set to get column type names.
