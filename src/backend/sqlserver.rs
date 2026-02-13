@@ -311,13 +311,45 @@ fn days_to_ymd(unix_days: i64) -> (i32, u32, u32) {
     (y as i32, m, d)
 }
 
-/// Query sys.dm_exec_describe_first_result_set to get column type names.
-/// Falls back to ColumnType-based mapping on failure.
+/// Query sys.dm_exec_describe_first_result_set to get precise column type names.
+/// Returns Err on any failure (permissions, unsupported query); caller should
+/// fall back to QueryStream column metadata + normalize_tiberius_type.
 async fn describe_result_columns(
     client: &mut Client<Compat<TcpStream>>,
     sql: &str,
 ) -> Result<Vec<ColumnMeta>, DbtoonError> {
-    todo!()
+    let stream = client
+        .query(
+            "SELECT name, system_type_name \
+             FROM sys.dm_exec_describe_first_result_set(@P1, NULL, 0) \
+             ORDER BY column_ordinal",
+            &[&sql],
+        )
+        .await
+        .map_err(|e| DbtoonError::Query {
+            message: format!("DMV describe failed: {}", e),
+        })?;
+
+    let rows = stream
+        .into_first_result()
+        .await
+        .map_err(|e| DbtoonError::Query {
+            message: format!("DMV describe failed: {}", e),
+        })?;
+
+    let mut columns = Vec::new();
+    for row in &rows {
+        let name: Option<&str> = row.get(0);
+        let type_name: Option<&str> = row.get(1);
+        columns.push(ColumnMeta {
+            name: name.unwrap_or("?").to_string(),
+            type_name: type_name
+                .map(|s| s.to_uppercase())
+                .unwrap_or_else(|| "UNKNOWN".to_string()),
+        });
+    }
+
+    Ok(columns)
 }
 
 impl Backend for SqlServerBackend {
