@@ -1,5 +1,7 @@
 # Implementation Plan: Multiple Output File Formats
 
+> **STATUS: COMPLETE** | Merged: 2026-02-12 | Branch: `004-output-formats`
+
 **Branch**: `004-output-formats` | **Date**: 2026-02-12 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/004-output-formats/spec.md`
 

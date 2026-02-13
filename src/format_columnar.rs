@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow::array::{
@@ -10,6 +11,26 @@ use arrow::record_batch::RecordBatch;
 
 use crate::backend::{CellValue, QueryResult};
 use crate::error::DbtoonError;
+
+/// Add truncation metadata to an Arrow schema.
+///
+/// When truncated, adds `dbtoon:truncated` = "true" and `dbtoon:message` = message
+/// to the schema's key-value metadata. When not truncated, returns the schema unchanged.
+pub fn with_truncation_metadata(
+    schema: Arc<Schema>,
+    truncated: bool,
+    message: Option<&str>,
+) -> Arc<Schema> {
+    if !truncated {
+        return schema;
+    }
+    let mut metadata = HashMap::new();
+    metadata.insert("dbtoon:truncated".to_string(), "true".to_string());
+    if let Some(msg) = message {
+        metadata.insert("dbtoon:message".to_string(), msg.to_string());
+    }
+    Arc::new(schema.as_ref().clone().with_metadata(metadata))
+}
 
 /// Map a SQL type string to an Arrow DataType.
 /// Unknown types map to Utf8 (string fallback).

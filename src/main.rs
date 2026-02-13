@@ -214,7 +214,7 @@ async fn list_warehouses(
         truncated: false,
     };
 
-    let toon = format::to_toon(&query_result)?;
+    let toon = format::to_toon(&query_result, false, None)?;
     output::print_result(&toon);
 
     Ok(())
@@ -329,6 +329,16 @@ fn output_result(
     result: &backend::QueryResult,
     format_info: Option<(OutputFormat, std::path::PathBuf)>,
 ) -> Result<(), DbtoonError> {
+    // Build truncation message once
+    let message = if result.truncated {
+        Some(format!(
+            "Showing {} rows. Use --no-limit to return all rows.",
+            result.rows.len()
+        ))
+    } else {
+        None
+    };
+
     if let Some((format, path)) = format_info {
         verbose::emit(
             app_config.verbose,
@@ -336,28 +346,34 @@ fn output_result(
         );
         match format {
             OutputFormat::Toon => {
-                let toon = format::to_toon(result)?;
+                let toon = format::to_toon(result, result.truncated, message.as_deref())?;
                 output::write_file(&toon, &path)?;
             }
             OutputFormat::Csv => {
                 dbtoon::format_csv::write_csv(result, &path)?;
             }
             OutputFormat::Parquet => {
-                dbtoon::format_parquet::write_parquet(result, &path)?;
+                dbtoon::format_parquet::write_parquet(
+                    result, &path, result.truncated, message.as_deref(),
+                )?;
             }
             OutputFormat::Arrow => {
-                dbtoon::format_arrow::write_arrow(result, &path)?;
+                dbtoon::format_arrow::write_arrow(
+                    result, &path, result.truncated, message.as_deref(),
+                )?;
             }
         }
-        output::print_summary(result.rows.len(), &path, result.truncated);
+        output::print_summary(
+            result.rows.len(), &path, result.truncated, message.as_deref(),
+        )?;
     } else {
-        let toon = format::to_toon(result)?;
+        let toon = format::to_toon(result, result.truncated, message.as_deref())?;
         output::print_result(&toon);
-        if result.truncated
-            && let Some(limit) = app_config.default_row_limit
-        {
-            output::print_truncation_message(limit);
-        }
+    }
+
+    // Stderr warning (all formats, when truncated)
+    if let Some(ref msg) = message {
+        output::print_truncation_warning(msg);
     }
 
     Ok(())

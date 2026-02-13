@@ -7,9 +7,17 @@ use crate::backend::QueryResult;
 use crate::error::DbtoonError;
 use crate::format_columnar;
 
-/// Write query results as an Arrow IPC file with typed columns.
-pub fn write_arrow(result: &QueryResult, path: &Path) -> Result<(), DbtoonError> {
+/// Write query results as an Arrow IPC file with typed columns and optional truncation metadata.
+///
+/// When truncated, schema metadata includes `dbtoon:truncated` and `dbtoon:message` keys.
+pub fn write_arrow(
+    result: &QueryResult,
+    path: &Path,
+    truncated: bool,
+    message: Option<&str>,
+) -> Result<(), DbtoonError> {
     let (schema, batch) = format_columnar::build_record_batch(result)?;
+    let schema = format_columnar::with_truncation_metadata(schema, truncated, message);
 
     let file = File::create(path)?;
     let mut writer =

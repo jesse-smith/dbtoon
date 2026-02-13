@@ -53,7 +53,7 @@ fn write_and_read_back_arrow_ipc_with_typed_columns() {
     );
 
     let path = temp_arrow_path("typed_columns");
-    write_arrow(&result, &path).unwrap();
+    write_arrow(&result, &path, false, None).unwrap();
 
     // Read back
     let file = fs::File::open(&path).unwrap();
@@ -115,7 +115,7 @@ fn null_values_are_native_arrow_nulls() {
     );
 
     let path = temp_arrow_path("null_values");
-    write_arrow(&result, &path).unwrap();
+    write_arrow(&result, &path, false, None).unwrap();
 
     let file = fs::File::open(&path).unwrap();
     let reader = FileReader::try_new(file, None).unwrap();
@@ -146,7 +146,7 @@ fn empty_result_produces_valid_arrow_ipc_with_schema() {
     );
 
     let path = temp_arrow_path("empty_result");
-    write_arrow(&result, &path).unwrap();
+    write_arrow(&result, &path, false, None).unwrap();
 
     let file = fs::File::open(&path).unwrap();
     let reader = FileReader::try_new(file, None).unwrap();
@@ -159,6 +159,51 @@ fn empty_result_produces_valid_arrow_ipc_with_schema() {
     let batches: Vec<_> = reader.into_iter().collect::<Result<_, _>>().unwrap();
     let total_rows: usize = batches.iter().map(|b| b.num_rows()).sum();
     assert_eq!(total_rows, 0);
+
+    let _ = fs::remove_file(&path);
+}
+
+// --- T007: Truncation metadata in Arrow IPC files ---
+
+#[test]
+fn truncated_arrow_has_dbtoon_metadata() {
+    let result = make_result(
+        vec![make_column("id", "INT")],
+        vec![vec![CellValue::Text("1".into())]],
+    );
+
+    let path = temp_arrow_path("truncated_meta");
+    let message = "Showing 1 rows. Use --no-limit to return all rows.";
+    write_arrow(&result, &path, true, Some(message)).unwrap();
+
+    let file = fs::File::open(&path).unwrap();
+    let reader = FileReader::try_new(file, None).unwrap();
+    let schema = reader.schema();
+    let meta = schema.metadata();
+
+    assert_eq!(meta.get("dbtoon:truncated").map(String::as_str), Some("true"));
+    assert_eq!(meta.get("dbtoon:message").map(String::as_str), Some(message));
+
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn non_truncated_arrow_has_no_dbtoon_metadata() {
+    let result = make_result(
+        vec![make_column("id", "INT")],
+        vec![vec![CellValue::Text("1".into())]],
+    );
+
+    let path = temp_arrow_path("non_truncated_meta");
+    write_arrow(&result, &path, false, None).unwrap();
+
+    let file = fs::File::open(&path).unwrap();
+    let reader = FileReader::try_new(file, None).unwrap();
+    let schema = reader.schema();
+    let meta = schema.metadata();
+
+    assert!(!meta.contains_key("dbtoon:truncated"), "non-truncated should not have dbtoon:truncated");
+    assert!(!meta.contains_key("dbtoon:message"), "non-truncated should not have dbtoon:message");
 
     let _ = fs::remove_file(&path);
 }

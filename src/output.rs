@@ -1,5 +1,4 @@
 use crate::error::DbtoonError;
-use crate::format;
 use std::path::Path;
 
 /// Print TOON result to stdout.
@@ -12,24 +11,48 @@ pub fn print_error(err: &DbtoonError) {
     eprintln!("error: {}", err);
 }
 
-/// Print file output summary to stdout as TOON key-value pairs.
-pub fn print_summary(rows: usize, path: &Path, truncated: bool) {
-    let rows_str = rows.to_string();
-    let path_str = path.display().to_string();
-    let truncated_str = truncated.to_string();
-    let summary = format::to_toon_kv(&[
-        ("rows_written", &rows_str),
-        ("file", &path_str),
-        ("truncated", &truncated_str),
-    ]);
-    println!("{}", summary);
+/// Print file output summary to stdout as a valid TOON object.
+///
+/// Summary includes: rows_written (number), file (string), truncated (bool),
+/// and message (string, only when truncated).
+pub fn print_summary(
+    rows: usize,
+    path: &Path,
+    truncated: bool,
+    message: Option<&str>,
+) -> Result<(), DbtoonError> {
+    let mut map = serde_json::Map::new();
+    map.insert(
+        "rows_written".to_string(),
+        serde_json::Value::Number(serde_json::Number::from(rows)),
+    );
+    map.insert(
+        "file".to_string(),
+        serde_json::Value::String(path.display().to_string()),
+    );
+    map.insert(
+        "truncated".to_string(),
+        serde_json::Value::Bool(truncated),
+    );
+    if let Some(msg) = message {
+        map.insert(
+            "message".to_string(),
+            serde_json::Value::String(msg.to_string()),
+        );
+    }
+
+    let toon = toon_format::encode_default(&serde_json::Value::Object(map))
+        .map_err(|e| DbtoonError::Format {
+            message: e.to_string(),
+        })?;
+    print!("{}", toon);
+    Ok(())
 }
 
-/// Print truncation metadata to stdout as TOON key-value pairs.
-pub fn print_truncation_message(limit: usize) {
-    let message = format!("Showing {} rows. Use --no-limit to return all rows.", limit);
-    let toon = format::to_toon_kv(&[("truncated", "true"), ("message", &message)]);
-    println!("{}", toon);
+/// Print a truncation warning to stderr for interactive visibility.
+/// Format: "warning: {message}"
+pub fn print_truncation_warning(message: &str) {
+    eprintln!("warning: {}", message);
 }
 
 /// Write TOON string to a file.

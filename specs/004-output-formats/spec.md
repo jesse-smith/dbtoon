@@ -1,5 +1,7 @@
 # Feature Specification: Multiple Output File Formats
 
+> **STATUS: COMPLETE** | Merged: 2026-02-12 | Branch: `004-output-formats`
+
 **Feature Branch**: `004-output-formats`
 **Created**: 2026-02-12
 **Status**: Draft

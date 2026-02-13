@@ -7,6 +7,7 @@ Central registry of all features and their current status.
 | 001 | Multi-Database Query CLI | `001-multi-db-query` | Complete | 2026-02-11 | 30 tasks, 6 user stories |
 | 002 | Standard Databricks Environment Variable Fallback | `002-std-env-vars` | Complete | 2026-02-12 | 24 tasks |
 | 003 | Add Column Types to Output Metadata | `003-column-type-metadata` | Complete | 2026-02-12 | 8 tasks |
+| 004 | Multiple Output File Formats | `004-output-formats` | Complete | 2026-02-12 | 21 tasks |
 
 ## Status Definitions
 
