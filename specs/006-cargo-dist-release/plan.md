@@ -1,5 +1,7 @@
 # Implementation Plan: Cross-Platform Binary Distribution & Self-Update
 
+> **STATUS: COMPLETE** | Merged: 2026-02-13 | Branch: `006-cargo-dist-release`
+
 **Branch**: `006-cargo-dist-release` | **Date**: 2026-02-12 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/006-cargo-dist-release/spec.md`
 

@@ -9,6 +9,7 @@ Central registry of all features and their current status.
 | 003 | Add Column Types to Output Metadata | `003-column-type-metadata` | Complete | 2026-02-12 | 8 tasks |
 | 004 | Multiple Output File Formats | `004-output-formats` | Complete | 2026-02-12 | 21 tasks |
 | 005 | Truncation Metadata | `005-truncation-metadata` | Complete | 2026-02-12 | 23 tasks |
+| 006 | Cross-Platform Binary Distribution & Self-Update | `006-cargo-dist-release` | Complete | 2026-02-13 | 12 tasks |
 
 ## Status Definitions
 

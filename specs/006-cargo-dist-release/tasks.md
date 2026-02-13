@@ -1,5 +1,7 @@
 # Tasks: Cross-Platform Binary Distribution & Self-Update
 
+> **STATUS: COMPLETE** | Merged: 2026-02-13 | Branch: `006-cargo-dist-release`
+
 **Input**: Design documents from `/specs/006-cargo-dist-release/`
 **Prerequisites**: plan.md (required), spec.md (required), research.md, data-model.md, contracts/, quickstart.md
 

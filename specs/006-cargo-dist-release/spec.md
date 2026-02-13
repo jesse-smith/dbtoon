@@ -1,5 +1,7 @@
 # Feature Specification: Cross-Platform Binary Distribution & Self-Update
 
+> **STATUS: COMPLETE** | Merged: 2026-02-13 | Branch: `006-cargo-dist-release`
+
 **Feature Branch**: `006-cargo-dist-release`
 **Created**: 2026-02-12
 **Status**: Draft
