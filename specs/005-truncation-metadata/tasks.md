@@ -19,7 +19,7 @@
 
 **Purpose**: Verify existing build is clean before modifications
 
-- [ ] T001 Verify existing build and tests pass via `cargo test && cargo clippy`
+- [X] T001 Verify existing build and tests pass via `cargo test && cargo clippy`
 
 ---
 
@@ -43,13 +43,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T002 [P] [US1] Write failing test for truncated TOON output containing `"truncated": true` and `"message"` key in `tests/unit/format_test.rs` (include sub-case: zero rows + truncated per spec edge case)
-- [ ] T003 [US1] Write failing test for non-truncated TOON output containing `"truncated": false` and no `"message"` key in `tests/unit/format_test.rs`
+- [X] T002 [P] [US1] Write failing test for truncated TOON output containing `"truncated": true` and `"message"` key in `tests/unit/format_test.rs` (include sub-case: zero rows + truncated per spec edge case)
+- [X] T003 [US1] Write failing test for non-truncated TOON output containing `"truncated": false` and no `"message"` key in `tests/unit/format_test.rs`
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Modify `to_toon()` signature in `src/format.rs` to accept `truncated: bool` and `message: Option<&str>`, embed `"truncated"` and conditional `"message"` in root TOON object before encoding
-- [ ] T005 [US1] Add truncation message construction block and update all `to_toon()` call sites (stdout and TOON file paths) in `src/main.rs` `output_result()` — NOTE: retain existing `print_truncation_message()` call; its removal is deferred to T020
+- [X] T004 [US1] Modify `to_toon()` signature in `src/format.rs` to accept `truncated: bool` and `message: Option<&str>`, embed `"truncated"` and conditional `"message"` in root TOON object before encoding
+- [X] T005 [US1] Add truncation message construction block and update all `to_toon()` call sites (stdout and TOON file paths) in `src/main.rs` `output_result()` — NOTE: retain existing `print_truncation_message()` call; its removal is deferred to T020
 
 **Checkpoint**: TOON output (stdout and file) is self-describing with truncation metadata. T002/T003 tests pass.
 
@@ -65,15 +65,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US2] Write failing tests for `dbtoon:truncated` and `dbtoon:message` in Parquet file metadata (truncated and non-truncated cases) in `tests/unit/format_parquet_test.rs`
-- [ ] T007 [P] [US2] Write failing tests for `dbtoon:truncated` and `dbtoon:message` in Arrow IPC schema metadata (truncated and non-truncated cases) in `tests/unit/format_arrow_test.rs`
+- [X] T006 [P] [US2] Write failing tests for `dbtoon:truncated` and `dbtoon:message` in Parquet file metadata (truncated and non-truncated cases) in `tests/unit/format_parquet_test.rs`
+- [X] T007 [P] [US2] Write failing tests for `dbtoon:truncated` and `dbtoon:message` in Arrow IPC schema metadata (truncated and non-truncated cases) in `tests/unit/format_arrow_test.rs`
 
 ### Implementation for User Story 2
 
-- [ ] T008 [P] [US2] Implement `with_truncation_metadata()` helper in `src/format_columnar.rs` that adds `dbtoon:truncated` and `dbtoon:message` to an Arrow `Schema` when truncated, returns schema unchanged when not
-- [ ] T009 [P] [US2] Modify `write_parquet()` in `src/format_parquet.rs` to accept `truncated: bool` and `message: Option<&str>`, call `with_truncation_metadata()` on schema before creating `ArrowWriter`
-- [ ] T010 [P] [US2] Modify `write_arrow()` in `src/format_arrow.rs` to accept `truncated: bool` and `message: Option<&str>`, call `with_truncation_metadata()` on schema before creating `FileWriter`
-- [ ] T011 [US2] Update Parquet and Arrow call sites in `src/main.rs` `output_result()` to pass `result.truncated` and `message.as_deref()` to `write_parquet()` and `write_arrow()`
+- [X] T008 [P] [US2] Implement `with_truncation_metadata()` helper in `src/format_columnar.rs` that adds `dbtoon:truncated` and `dbtoon:message` to an Arrow `Schema` when truncated, returns schema unchanged when not
+- [X] T009 [P] [US2] Modify `write_parquet()` in `src/format_parquet.rs` to accept `truncated: bool` and `message: Option<&str>`, use WriterProperties for Parquet file-level metadata
+- [X] T010 [P] [US2] Modify `write_arrow()` in `src/format_arrow.rs` to accept `truncated: bool` and `message: Option<&str>`, call `with_truncation_metadata()` on schema before creating `FileWriter`
+- [X] T011 [US2] Update Parquet and Arrow call sites in `src/main.rs` `output_result()` to pass `result.truncated` and `message.as_deref()` to `write_parquet()` and `write_arrow()`
 
 **Checkpoint**: Parquet and Arrow files carry truncation metadata when results are truncated. T006/T007 tests pass.
 
@@ -89,12 +89,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T012 [P] [US3] Write failing tests for `print_summary()` producing valid TOON output (truncated and non-truncated cases) in `tests/unit/output_test.rs` (NEW file)
+- [X] T012 [P] [US3] Write failing tests for `print_summary()` producing valid TOON output (truncated and non-truncated cases) in `tests/unit/output_test.rs` (NEW file)
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Rewrite `print_summary()` in `src/output.rs` to accept `truncated: bool` and `message: Option<&str>`, change return type from `()` to `Result<(), DbtoonError>`, build `serde_json::Value::Object` with `rows_written`, `file`, `truncated`, and conditional `message`, encode via `toon_format::encode_default()`
-- [ ] T014 [US3] Update all `print_summary()` call sites in `src/main.rs` `output_result()` to pass `result.truncated` and `message.as_deref()`
+- [X] T013 [US3] Rewrite `print_summary()` in `src/output.rs` to accept `truncated: bool` and `message: Option<&str>`, change return type from `()` to `Result<(), DbtoonError>`, build `serde_json::Value::Object` with `rows_written`, `file`, `truncated`, and conditional `message`, encode via `toon_format::encode_default()`
+- [X] T014 [US3] Update all `print_summary()` call sites in `src/main.rs` `output_result()` to pass `result.truncated` and `message.as_deref()`
 
 **Checkpoint**: File output summaries on stdout are valid TOON with truncation metadata. T012 tests pass.
 
@@ -112,12 +112,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T015 [P] [US4] Write failing round-trip test: encode with truncation args via `to_toon()`, write to temp `.toon` file, read back, and verify `"truncated"` and `"message"` keys are preserved in `tests/unit/format_test.rs`
-- [ ] T016 [P] [US4] Write failing test for TOON file output print summary containing truncation keys in `tests/unit/output_test.rs`
+- [X] T015 [P] [US4] Write failing round-trip test: encode with truncation args via `to_toon()`, write to temp `.toon` file, read back, and verify `"truncated"` and `"message"` keys are preserved in `tests/unit/format_test.rs`
+- [X] T016 [P] [US4] Write failing test for TOON file output print summary containing truncation keys in `tests/unit/output_test.rs`
 
 ### Implementation for User Story 4
 
-- [ ] T017 [US4] Verify TOON file path in `output_result()` in `src/main.rs` passes truncation metadata to `to_toon()` and calls `print_summary()` with truncation args (should be wired from US1 T005 + US3 T014; validate and fix if needed)
+- [X] T017 [US4] Verify TOON file path in `output_result()` in `src/main.rs` passes truncation metadata to `to_toon()` and calls `print_summary()` with truncation args (should be wired from US1 T005 + US3 T014; validate and fix if needed)
 
 **Checkpoint**: TOON file output is self-describing with truncation metadata. T015/T016 tests pass.
 
@@ -129,12 +129,12 @@
 
 > **NOTE: Write test FIRST, ensure it FAILS before implementation**
 
-- [ ] T018 Write failing test for `print_truncation_warning()` stderr output in `tests/unit/output_test.rs`
-- [ ] T019 Implement `print_truncation_warning()` in `src/output.rs` and wire stderr warning call at end of `output_result()` in `src/main.rs` (FR-012)
-- [ ] T020 Remove `print_truncation_message()` from `src/output.rs` and all call sites in `src/main.rs` (FR-011)
-- [ ] T021 Remove `to_toon_kv()` from `src/format.rs` and all callers (R5: only callers are `print_truncation_message` and `print_summary`, both replaced)
-- [ ] T022 Run quickstart.md validation scenarios against modified build
-- [ ] T023 Final `cargo test && cargo clippy` clean pass
+- [X] T018 Write failing test for `print_truncation_warning()` stderr output in `tests/unit/output_test.rs`
+- [X] T019 Implement `print_truncation_warning()` in `src/output.rs` and wire stderr warning call at end of `output_result()` in `src/main.rs` (FR-012)
+- [X] T020 Remove `print_truncation_message()` from `src/output.rs` and all call sites in `src/main.rs` (FR-011)
+- [X] T021 Remove `to_toon_kv()` from `src/format.rs` and all callers (R5: only callers are `print_truncation_message` and `print_summary`, both replaced)
+- [X] T022 Run quickstart.md validation scenarios against modified build
+- [X] T023 Final `cargo test && cargo clippy` clean pass
 
 ---
 

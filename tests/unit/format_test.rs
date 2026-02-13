@@ -1,12 +1,22 @@
 use dbtoon::backend::sqlserver::normalize_odbc_type;
 use dbtoon::backend::{CellValue, ColumnMeta, QueryResult};
-use dbtoon::format::{to_toon, to_toon_kv};
+use dbtoon::format::to_toon;
 use odbc_api::DataType;
 use std::num::NonZeroUsize;
 
 /// Helper: encode to TOON and decode back to serde_json::Value (no type coercion)
 fn round_trip(result: &QueryResult) -> serde_json::Value {
-    let toon = to_toon(result).unwrap();
+    let toon = to_toon(result, false, None).unwrap();
+    toon_format::decode_no_coerce(&toon).unwrap()
+}
+
+/// Helper: encode with truncation args and decode back
+fn round_trip_with_truncation(
+    result: &QueryResult,
+    truncated: bool,
+    message: Option<&str>,
+) -> serde_json::Value {
+    let toon = to_toon(result, truncated, message).unwrap();
     toon_format::decode_no_coerce(&toon).unwrap()
 }
 
@@ -135,10 +145,128 @@ fn test_single_column_single_row() {
     assert_eq!(rows[0]["count"], "42");
 }
 
+// --- T002: Truncated TOON output contains truncated + message keys ---
+
 #[test]
-fn test_toon_kv() {
-    let kv = to_toon_kv(&[("truncated", "true"), ("message", "Showing 500 rows.")]);
-    assert_eq!(kv, "truncated: true\nmessage: Showing 500 rows.");
+fn test_truncated_toon_has_truncated_true_and_message() {
+    let result = QueryResult {
+        columns: vec![
+            ColumnMeta { name: "id".to_string(), type_name: "INT".to_string() },
+        ],
+        rows: vec![
+            vec![CellValue::Text("1".to_string())],
+            vec![CellValue::Text("2".to_string())],
+        ],
+        total_rows: None,
+        truncated: true,
+    };
+
+    let message = "Showing 2 rows. Use --no-limit to return all rows.";
+    let decoded = round_trip_with_truncation(&result, true, Some(message));
+    let obj = decoded.as_object().expect("output should be a root object");
+
+    // truncated key must be present and true
+    let truncated_val = obj.get("truncated").expect("should have 'truncated' key");
+    assert_eq!(truncated_val, &serde_json::Value::Bool(true));
+
+    // message key must be present with the expected text
+    let message_val = obj.get("message").expect("should have 'message' key");
+    assert_eq!(message_val, message);
+
+    // types and rows must still be present
+    assert!(obj.contains_key("types"));
+    assert!(obj.contains_key("rows"));
+}
+
+#[test]
+fn test_truncated_toon_zero_rows_edge_case() {
+    // Edge case per spec: truncated=true but zero rows (e.g., server returned 0 rows with truncation flag)
+    let result = QueryResult {
+        columns: vec![
+            ColumnMeta { name: "id".to_string(), type_name: "INT".to_string() },
+        ],
+        rows: vec![],
+        total_rows: None,
+        truncated: true,
+    };
+
+    let message = "Showing 0 rows. Use --no-limit to return all rows.";
+    let decoded = round_trip_with_truncation(&result, true, Some(message));
+    let obj = decoded.as_object().expect("output should be a root object");
+
+    let truncated_val = obj.get("truncated").expect("should have 'truncated' key");
+    assert_eq!(truncated_val, &serde_json::Value::Bool(true));
+
+    let message_val = obj.get("message").expect("should have 'message' key");
+    assert_eq!(message_val, message);
+}
+
+// --- T003: Non-truncated TOON output contains truncated=false and NO message key ---
+
+#[test]
+fn test_non_truncated_toon_has_truncated_false_and_no_message() {
+    let result = QueryResult {
+        columns: vec![
+            ColumnMeta { name: "id".to_string(), type_name: "INT".to_string() },
+        ],
+        rows: vec![
+            vec![CellValue::Text("1".to_string())],
+        ],
+        total_rows: None,
+        truncated: false,
+    };
+
+    let decoded = round_trip_with_truncation(&result, false, None);
+    let obj = decoded.as_object().expect("output should be a root object");
+
+    // truncated key must be present and false
+    let truncated_val = obj.get("truncated").expect("should have 'truncated' key");
+    assert_eq!(truncated_val, &serde_json::Value::Bool(false));
+
+    // message key must NOT be present
+    assert!(!obj.contains_key("message"), "non-truncated output should not have 'message' key");
+
+    // types and rows must still be present
+    assert!(obj.contains_key("types"));
+    assert!(obj.contains_key("rows"));
+}
+
+// --- T015: Round-trip test: encode with truncation, write to temp .toon file, read back ---
+
+#[test]
+fn test_toon_file_round_trip_with_truncation() {
+    let result = QueryResult {
+        columns: vec![
+            ColumnMeta { name: "id".to_string(), type_name: "INT".to_string() },
+        ],
+        rows: vec![
+            vec![CellValue::Text("1".to_string())],
+            vec![CellValue::Text("2".to_string())],
+        ],
+        total_rows: None,
+        truncated: true,
+    };
+
+    let message = "Showing 2 rows. Use --no-limit to return all rows.";
+    let toon = to_toon(&result, true, Some(message)).unwrap();
+
+    // Write to temp file
+    let dir = std::env::temp_dir().join("dbtoon_test_toon");
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("round_trip_trunc.toon");
+    std::fs::write(&path, &toon).unwrap();
+
+    // Read back and decode
+    let content = std::fs::read_to_string(&path).unwrap();
+    let decoded: serde_json::Value = toon_format::decode_no_coerce(&content).unwrap();
+    let obj = decoded.as_object().expect("should be a root object");
+
+    assert_eq!(obj.get("truncated").unwrap(), &serde_json::Value::Bool(true));
+    assert_eq!(obj.get("message").unwrap(), message);
+    assert!(obj.contains_key("types"));
+    assert!(obj.contains_key("rows"));
+
+    let _ = std::fs::remove_file(&path);
 }
 
 // --- US2: End-to-end normalization verification ---

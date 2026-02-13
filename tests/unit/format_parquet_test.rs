@@ -1,8 +1,10 @@
+use std::collections::HashMap;
 use std::fs;
 
 use arrow::array::RecordBatchReader;
 use arrow::datatypes::DataType;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReader;
+use parquet::file::reader::{FileReader as ParquetFileReader, SerializedFileReader};
 
 use dbtoon::backend::{CellValue, ColumnMeta, QueryResult};
 use dbtoon::format_parquet::write_parquet;
@@ -53,7 +55,7 @@ fn write_and_read_back_parquet_with_typed_columns() {
     );
 
     let path = temp_parquet_path("typed_columns");
-    write_parquet(&result, &path).unwrap();
+    write_parquet(&result, &path, false, None).unwrap();
 
     // Read back
     let file = fs::File::open(&path).unwrap();
@@ -108,7 +110,7 @@ fn null_values_are_native_parquet_nulls() {
     );
 
     let path = temp_parquet_path("null_values");
-    write_parquet(&result, &path).unwrap();
+    write_parquet(&result, &path, false, None).unwrap();
 
     let file = fs::File::open(&path).unwrap();
     let reader = ParquetRecordBatchReader::try_new(file, 1024).unwrap();
@@ -139,7 +141,7 @@ fn empty_result_produces_valid_parquet_with_schema() {
     );
 
     let path = temp_parquet_path("empty_result");
-    write_parquet(&result, &path).unwrap();
+    write_parquet(&result, &path, false, None).unwrap();
 
     let file = fs::File::open(&path).unwrap();
     let reader = ParquetRecordBatchReader::try_new(file, 1024).unwrap();
@@ -168,7 +170,7 @@ fn string_fallback_columns_stored_as_utf8() {
     );
 
     let path = temp_parquet_path("fallback_utf8");
-    write_parquet(&result, &path).unwrap();
+    write_parquet(&result, &path, false, None).unwrap();
 
     let file = fs::File::open(&path).unwrap();
     let reader = ParquetRecordBatchReader::try_new(file, 1024).unwrap();
@@ -186,6 +188,58 @@ fn string_fallback_columns_stored_as_utf8() {
         .unwrap();
     assert_eq!(col.value(0), "42");
     assert_eq!(col.value(1), "not_a_number");
+
+    let _ = fs::remove_file(&path);
+}
+
+// --- T006: Truncation metadata in Parquet files ---
+
+fn read_parquet_kv_metadata(path: &std::path::Path) -> HashMap<String, String> {
+    let file = fs::File::open(path).unwrap();
+    let reader = SerializedFileReader::new(file).unwrap();
+    let file_meta = reader.metadata().file_metadata();
+    let mut map = HashMap::new();
+    if let Some(kv_meta) = file_meta.key_value_metadata() {
+        for kv in kv_meta {
+            if let Some(ref v) = kv.value {
+                map.insert(kv.key.clone(), v.clone());
+            }
+        }
+    }
+    map
+}
+
+#[test]
+fn truncated_parquet_has_dbtoon_metadata() {
+    let result = make_result(
+        vec![make_column("id", "INT")],
+        vec![vec![CellValue::Text("1".into())]],
+    );
+
+    let path = temp_parquet_path("truncated_meta");
+    let message = "Showing 1 rows. Use --no-limit to return all rows.";
+    write_parquet(&result, &path, true, Some(message)).unwrap();
+
+    let meta = read_parquet_kv_metadata(&path);
+    assert_eq!(meta.get("dbtoon:truncated").map(String::as_str), Some("true"));
+    assert_eq!(meta.get("dbtoon:message").map(String::as_str), Some(message));
+
+    let _ = fs::remove_file(&path);
+}
+
+#[test]
+fn non_truncated_parquet_has_no_dbtoon_metadata() {
+    let result = make_result(
+        vec![make_column("id", "INT")],
+        vec![vec![CellValue::Text("1".into())]],
+    );
+
+    let path = temp_parquet_path("non_truncated_meta");
+    write_parquet(&result, &path, false, None).unwrap();
+
+    let meta = read_parquet_kv_metadata(&path);
+    assert!(!meta.contains_key("dbtoon:truncated"), "non-truncated should not have dbtoon:truncated");
+    assert!(!meta.contains_key("dbtoon:message"), "non-truncated should not have dbtoon:message");
 
     let _ = fs::remove_file(&path);
 }
