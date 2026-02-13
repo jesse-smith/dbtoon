@@ -1,8 +1,10 @@
 # Feature Specification: Truncation Metadata
 
+> **STATUS: COMPLETE** | Merged: 2026-02-12 | Branch: `005-truncation-metadata`
+
 **Feature Branch**: `005-truncation-metadata`
 **Created**: 2026-02-12
-**Status**: Draft
+**Status**: Complete
 **Input**: User description: "Add truncated and message keys to TOON object, and equivalent metadata to parquet and arrow files. CSV should be handled by print summary - but print summary should be valid toon and include both truncated and message keys, for all non-toon outputs, not just CSV."
 
 ## Clarifications

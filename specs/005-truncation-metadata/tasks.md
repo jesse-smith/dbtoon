@@ -1,5 +1,7 @@
 # Tasks: Truncation Metadata
 
+> **STATUS: COMPLETE** | Merged: 2026-02-12 | Branch: `005-truncation-metadata`
+
 **Input**: Design documents from `/specs/005-truncation-metadata/`
 **Prerequisites**: plan.md ✓, spec.md ✓, research.md ✓, data-model.md ✓, contracts/ ✓, quickstart.md ✓
 

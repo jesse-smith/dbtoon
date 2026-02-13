@@ -1,5 +1,7 @@
 # Implementation Plan: Truncation Metadata
 
+> **STATUS: COMPLETE** | Merged: 2026-02-12 | Branch: `005-truncation-metadata`
+
 **Branch**: `005-truncation-metadata` | **Date**: 2026-02-12 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/005-truncation-metadata/spec.md`
 
