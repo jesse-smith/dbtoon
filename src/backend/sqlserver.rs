@@ -3,7 +3,8 @@ use crate::config::SqlServerAuth;
 use crate::error::DbtoonError;
 use futures_util::TryStreamExt;
 use secrecy::ExposeSecret;
-use tiberius::{AuthMethod, Client, ColumnData, ColumnType, Config, EncryptionLevel};
+use std::time::Duration;
+use tiberius::{AuthMethod, Client, ColumnData, ColumnType, Config, EncryptionLevel, SqlBrowser};
 use tokio::net::TcpStream;
 use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
@@ -27,6 +28,105 @@ impl SqlServerBackend {
             auth,
             trust_server_certificate,
         }
+    }
+
+    async fn execute_inner(
+        &self,
+        sql: &str,
+        limit: Option<usize>,
+    ) -> Result<QueryResult, DbtoonError> {
+        let config = self.build_tiberius_config()?;
+
+        // connect_named handles both named instances (SQL Browser resolution)
+        // and direct connections (no instance name).
+        let tcp = TcpStream::connect_named(&config).await.map_err(|e| {
+            DbtoonError::Connection {
+                message: format!("{}", e),
+            }
+        })?;
+        tcp.set_nodelay(true)?;
+
+        let mut client =
+            Client::connect(config, tcp.compat_write())
+                .await
+                .map_err(|e| {
+                    let msg = e.to_string();
+                    let lower = msg.to_lowercase();
+                    if lower.contains("login")
+                        || lower.contains("authentication")
+                        || lower.contains("gssapi")
+                    {
+                        DbtoonError::Auth { message: msg }
+                    } else {
+                        DbtoonError::Connection { message: msg }
+                    }
+                })?;
+
+        // Try DMV describe for precise column type names; Ok(cols) or Err (ignored).
+        let dmv_columns = describe_result_columns(&mut client, sql).await.ok();
+
+        // Execute user query.
+        let mut stream = client.query(sql, &[]).await.map_err(|e| DbtoonError::Query {
+            message: format!("{}", e),
+        })?;
+
+        // Column metadata: prefer DMV, fall back to stream metadata + normalize.
+        let columns = if let Some(dmv_cols) = dmv_columns {
+            dmv_cols
+        } else {
+            eprintln!(
+                "warning: DMV describe unavailable, falling back to tiberius column metadata"
+            );
+            let stream_cols =
+                stream
+                    .columns()
+                    .await
+                    .map_err(|e| DbtoonError::Query {
+                        message: format!("{}", e),
+                    })?;
+            match stream_cols {
+                Some(cols) => cols
+                    .iter()
+                    .map(|c| ColumnMeta {
+                        name: c.name().to_string(),
+                        type_name: normalize_tiberius_type(c.column_type()),
+                    })
+                    .collect(),
+                None => Vec::new(),
+            }
+        };
+
+        // Stream rows, enforcing the row limit.
+        let mut row_stream = stream.into_row_stream();
+        let mut rows = Vec::new();
+        let mut truncated = false;
+
+        while let Some(row) = row_stream
+            .try_next()
+            .await
+            .map_err(|e| DbtoonError::Query {
+                message: format!("{}", e),
+            })?
+        {
+            if let Some(max) = limit
+                && rows.len() >= max
+            {
+                truncated = true;
+                break;
+            }
+            let row_data: Vec<CellValue> =
+                row.cells().map(|(_, data)| column_data_to_string(data)).collect();
+            rows.push(row_data);
+        }
+
+        let total_rows = if truncated { None } else { Some(rows.len()) };
+
+        Ok(QueryResult {
+            columns,
+            rows,
+            total_rows,
+            truncated,
+        })
     }
 
     fn build_tiberius_config(&self) -> Result<Config, DbtoonError> {
@@ -359,6 +459,16 @@ impl Backend for SqlServerBackend {
         limit: Option<usize>,
         timeout_secs: u64,
     ) -> Result<QueryResult, DbtoonError> {
-        todo!()
+        match tokio::time::timeout(
+            Duration::from_secs(timeout_secs),
+            self.execute_inner(sql, limit),
+        )
+        .await
+        {
+            Ok(result) => result,
+            Err(_elapsed) => Err(DbtoonError::Timeout {
+                seconds: timeout_secs,
+            }),
+        }
     }
 }
