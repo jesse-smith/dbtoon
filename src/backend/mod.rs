@@ -11,7 +11,7 @@ pub struct ColumnMeta {
 }
 
 /// A single cell value from a query result.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CellValue {
     Text(String),
     Null,

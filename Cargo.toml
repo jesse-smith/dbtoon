@@ -5,9 +5,11 @@ edition = "2024"
 repository = "https://github.com/jesse-smith/dbtoon"
 
 [dependencies]
-odbc-api = "20"
+tiberius = { version = "0.12", default-features = false, features = ["tds73", "native-tls", "sql-browser-tokio"] }
+tokio-util = { version = "0.7", features = ["compat"] }
+futures-util = "0.3"
 reqwest = { version = "0.12", features = ["json"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time"] }
 sqlparser = "0.61"
 toon-format = { version = "0.4", default-features = false }
 clap = { version = "4.5", features = ["derive", "env"] }
@@ -24,8 +26,10 @@ arrow = { version = "57", default-features = false, features = ["ipc"] }
 parquet = { version = "57", default-features = false, features = ["arrow"] }
 axoupdater = { version = "0.9", default-features = false, features = ["github_releases", "blocking"] }
 
+[target.'cfg(not(windows))'.dependencies]
+tiberius = { version = "0.12", default-features = false, features = ["integrated-auth-gssapi"] }
+
 [dev-dependencies]
-odbc-api = "20"
 secrecy = "0.10"
 
 # The profile that 'dist' will build with
