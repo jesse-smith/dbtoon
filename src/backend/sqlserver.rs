@@ -39,7 +39,25 @@ impl SqlServerBackend {
 pub fn parse_server_address(
     server: &str,
 ) -> Result<(String, Option<u16>, Option<String>), DbtoonError> {
-    todo!()
+    let server = server.strip_prefix("tcp:").unwrap_or(server);
+
+    if let Some((host, instance_part)) = server.split_once('\\') {
+        if let Some((instance, port_str)) = instance_part.split_once(',') {
+            let port: u16 = port_str.parse().map_err(|_| DbtoonError::Config {
+                message: format!("invalid port value: '{}'", port_str),
+            })?;
+            Ok((host.to_string(), Some(port), Some(instance.to_string())))
+        } else {
+            Ok((host.to_string(), None, Some(instance_part.to_string())))
+        }
+    } else if let Some((host, port_str)) = server.split_once(',') {
+        let port: u16 = port_str.parse().map_err(|_| DbtoonError::Config {
+            message: format!("invalid port value: '{}'", port_str),
+        })?;
+        Ok((host.to_string(), Some(port), None))
+    } else {
+        Ok((server.to_string(), None, None))
+    }
 }
 
 /// Best-effort mapping from tiberius ColumnType to SQL type string.
