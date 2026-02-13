@@ -63,7 +63,40 @@ pub fn parse_server_address(
 /// Best-effort mapping from tiberius ColumnType to SQL type string.
 /// Used when DMV-based describe fails. Omits precision/scale/length.
 pub fn normalize_tiberius_type(col_type: ColumnType) -> String {
-    todo!()
+    match col_type {
+        ColumnType::Null => "UNKNOWN",
+        ColumnType::Bit | ColumnType::Bitn => "BIT",
+        ColumnType::Int1 => "TINYINT",
+        ColumnType::Int2 => "SMALLINT",
+        ColumnType::Int4 | ColumnType::Intn => "INT",
+        ColumnType::Int8 => "BIGINT",
+        ColumnType::Float4 => "REAL",
+        ColumnType::Float8 | ColumnType::Floatn => "FLOAT",
+        ColumnType::Money => "MONEY",
+        ColumnType::Money4 => "SMALLMONEY",
+        ColumnType::Datetime | ColumnType::Datetimen => "DATETIME",
+        ColumnType::Datetime4 => "SMALLDATETIME",
+        ColumnType::Datetime2 => "DATETIME2",
+        ColumnType::Daten => "DATE",
+        ColumnType::Timen => "TIME",
+        ColumnType::DatetimeOffsetn => "DATETIMEOFFSET",
+        ColumnType::Decimaln => "DECIMAL",
+        ColumnType::Numericn => "NUMERIC",
+        ColumnType::BigVarChar => "VARCHAR",
+        ColumnType::BigChar => "CHAR",
+        ColumnType::NVarchar => "NVARCHAR",
+        ColumnType::NChar => "NCHAR",
+        ColumnType::BigVarBin => "VARBINARY",
+        ColumnType::BigBinary => "BINARY",
+        ColumnType::Guid => "UNIQUEIDENTIFIER",
+        ColumnType::Xml => "XML",
+        ColumnType::Text => "TEXT",
+        ColumnType::NText => "NTEXT",
+        ColumnType::Image => "IMAGE",
+        ColumnType::SSVariant => "SQL_VARIANT",
+        ColumnType::Udt => "UNKNOWN",
+    }
+    .to_string()
 }
 
 /// Convert a tiberius ColumnData value to a CellValue string.
