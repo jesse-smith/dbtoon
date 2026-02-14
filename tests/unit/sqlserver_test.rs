@@ -217,12 +217,12 @@ fn test_i64_value() {
 
 #[test]
 fn test_f32_value() {
-    let data = ColumnData::F32(Some(3.14));
+    let data = ColumnData::F32(Some(1.25));
     let result = column_data_to_string(&data);
     match result {
         CellValue::Text(s) => {
             let parsed: f32 = s.parse().expect("should be a valid float string");
-            assert!((parsed - 3.14).abs() < 0.001, "Got: {}", s);
+            assert!((parsed - 1.25).abs() < 0.001, "Got: {}", s);
         }
         CellValue::Null => panic!("Expected Text, got Null"),
     }
@@ -230,12 +230,12 @@ fn test_f32_value() {
 
 #[test]
 fn test_f64_value() {
-    let data = ColumnData::F64(Some(3.141592653589793));
+    let data = ColumnData::F64(Some(9.876543210123456));
     let result = column_data_to_string(&data);
     match result {
         CellValue::Text(s) => {
             let parsed: f64 = s.parse().expect("should be a valid float string");
-            assert!((parsed - 3.141592653589793).abs() < 1e-10, "Got: {}", s);
+            assert!((parsed - 9.876543210123456).abs() < 1e-10, "Got: {}", s);
         }
         CellValue::Null => panic!("Expected Text, got Null"),
     }

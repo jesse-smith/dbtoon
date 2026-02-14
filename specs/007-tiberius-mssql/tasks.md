@@ -66,15 +66,15 @@
 
 ### macOS Verification (US1, FR-002)
 
-- [ ] T013a [US1] Verify macOS integrated auth configuration: confirm `[target.'cfg(not(windows))'.dependencies]` section in Cargo.toml enables `integrated-auth-gssapi` feature for tiberius (macOS uses GSS.framework at runtime — no additional packages required); optionally verify with `cargo check --target aarch64-apple-darwin` or `x86_64-apple-darwin`
+- [X] T013a [US1] Verify macOS integrated auth configuration: confirm `[target.'cfg(not(windows))'.dependencies]` section in Cargo.toml enables `integrated-auth-gssapi` feature for tiberius (macOS uses GSS.framework at runtime — no additional packages required); optionally verify with `cargo check --target aarch64-apple-darwin` or `x86_64-apple-darwin`
 
 ### Linux Verification (US3, FR-003)
 
-- [ ] T013b [US3] Verify Linux integrated auth configuration: confirm `[target.'cfg(not(windows))'.dependencies]` section in Cargo.toml enables `integrated-auth-gssapi` feature for tiberius (Linux links against system `libgssapi-krb5` at runtime); optionally verify with `cargo check --target x86_64-unknown-linux-gnu` if cross-compilation toolchain is available
+- [X] T013b [US3] Verify Linux integrated auth configuration: confirm `[target.'cfg(not(windows))'.dependencies]` section in Cargo.toml enables `integrated-auth-gssapi` feature for tiberius (Linux links against system `libgssapi-krb5` at runtime); optionally verify with `cargo check --target x86_64-unknown-linux-gnu` if cross-compilation toolchain is available
 
 ### Windows Verification (FR-004)
 
-- [ ] T013c [US4] Verify Windows integrated auth configuration: confirm `[target.'cfg(windows)'.dependencies]` section in Cargo.toml does NOT include `integrated-auth-gssapi` and instead relies on tiberius default `winauth` feature for SSPI; optionally verify with `cargo check --target x86_64-pc-windows-msvc` if cross-compilation toolchain is available
+- [X] T013c [US4] Verify Windows integrated auth configuration: added `[target.'cfg(windows)'.dependencies]` section in Cargo.toml with `winauth` feature for tiberius SSPI support; `integrated-auth-gssapi` is NOT included for Windows
 
 **Checkpoint**: Cargo.toml has correct platform-conditional features for all three platforms. macOS uses GSS.framework, Linux links `libgssapi-krb5`, Windows uses SSPI via default `winauth`.
 
@@ -84,10 +84,10 @@
 
 **Purpose**: Final verification and cleanup across all user stories
 
-- [ ] T014 Update tests/unit/config_test.rs to remove any `odbc-api` dev-dependency references if present
-- [ ] T015 Run full test suite (`cargo test`) and linter (`cargo clippy -- -D warnings`) — verify zero failures and zero warnings; explicitly confirm: (a) credential masking tests pass (FR-012 — passwords redacted by default, exposed with `--show-secrets`), (b) Databricks backend tests pass unmodified (FR-013 — no cross-backend regressions)
+- [X] T014 Update tests/unit/config_test.rs to remove any `odbc-api` dev-dependency references if present — no odbc-api references found; also updated .github/workflows/ci.yml to replace `unixodbc-dev` with `libkrb5-dev`
+- [X] T015 Run full test suite (`cargo test`) and linter (`cargo clippy -- -D warnings`) — 202 tests pass, zero warnings; confirmed: (a) credential masking tests pass (FR-012), (b) Databricks backend tests pass unmodified (FR-013)
 - [ ] T016 Run quickstart.md manual validation scenarios against a SQL Server instance (SQL login auth, Windows auth, named instance, trust cert flag)
-- [ ] T017 Measure binary size (SC-007): record current ODBC-based release binary size, build the tiberius-based binary with `cargo build --release`, compare sizes and confirm increase is <50%
+- [X] T017 Measure binary size (SC-007): ODBC baseline 21,823,392 bytes (20.8 MB), tiberius 22,511,888 bytes (21.5 MB), delta +3.2% — PASS (<50% threshold)
 - [ ] T018 Measure memory usage for large result sets (SC-006): run a query returning 100k+ rows against a SQL Server instance, monitor peak RSS (e.g., via `/usr/bin/time -l` on macOS or `command time -v` on Linux), and confirm it does not exceed the ODBC baseline by more than 20%
 
 ---

@@ -29,6 +29,9 @@ axoupdater = { version = "0.9", default-features = false, features = ["github_re
 [target.'cfg(not(windows))'.dependencies]
 tiberius = { version = "0.12", default-features = false, features = ["integrated-auth-gssapi"] }
 
+[target.'cfg(windows)'.dependencies]
+tiberius = { version = "0.12", default-features = false, features = ["winauth"] }
+
 [dev-dependencies]
 secrecy = "0.10"
 
