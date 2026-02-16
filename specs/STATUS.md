@@ -10,6 +10,7 @@ Central registry of all features and their current status.
 | 004 | Multiple Output File Formats | `004-output-formats` | Complete | 2026-02-12 | 21 tasks |
 | 005 | Truncation Metadata | `005-truncation-metadata` | Complete | 2026-02-12 | 23 tasks |
 | 006 | Cross-Platform Binary Distribution & Self-Update | `006-cargo-dist-release` | Complete | 2026-02-13 | 12 tasks |
+| 007 | Self-Contained SQL Server Backend | `007-tiberius-mssql` | Archived | — | Tag: `archive/007-tiberius-mssql`. Tiberius macOS TLS + GSSAPI issues; see KNOWN-ISSUES.md |
 
 ## Status Definitions
 
