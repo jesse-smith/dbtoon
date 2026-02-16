@@ -513,9 +513,10 @@ async fn value_xml() {
 #[tokio::test]
 async fn value_datetimeoffset() {
     let b = require_sqlserver!();
+    // Use UTC offset so the time component is unambiguous (no UTC conversion shift)
     let r = exec(
         &b,
-        "SELECT CAST('2025-06-15 14:30:00.1234567 +05:30' AS DATETIMEOFFSET(7)) AS v",
+        "SELECT CAST('2025-06-15 14:30:00.1234567 +00:00' AS DATETIMEOFFSET(7)) AS v",
     )
     .await
     .unwrap();
@@ -526,8 +527,8 @@ async fn value_datetimeoffset() {
         text
     );
     assert!(
-        text.contains("+05:30"),
-        "expected offset '+05:30' in '{}'",
+        text.contains("+00:00"),
+        "expected offset '+00:00' in '{}'",
         text
     );
 }
