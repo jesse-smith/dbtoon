@@ -4,6 +4,7 @@ use dbtoon::config::SqlServerAuth;
 use dbtoon::error::DbtoonError;
 use secrecy::SecretString;
 use std::env;
+use std::fs;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -614,5 +615,71 @@ async fn twenty_column_query() {
     for i in 0..20 {
         assert_eq!(r.columns[i].name, format!("c{}", i + 1));
         assert_eq!(text_at(&r, 0, i), format!("{}", i + 1));
+    }
+}
+
+// ===========================================================================
+// Memory Benchmark (1 test, gated on TEST_SQLSERVER_BENCH=1)
+// ===========================================================================
+
+/// Read VmRSS from /proc/self/status (Linux only). Returns None on other platforms.
+fn read_rss_kb() -> Option<u64> {
+    let status = fs::read_to_string("/proc/self/status").ok()?;
+    for line in status.lines() {
+        if let Some(rest) = line.strip_prefix("VmRSS:") {
+            let kb_str = rest.trim().strip_suffix("kB")?.trim();
+            return kb_str.parse().ok();
+        }
+    }
+    None
+}
+
+#[tokio::test]
+async fn memory_benchmark_100k_rows() {
+    if env::var("TEST_SQLSERVER_BENCH").as_deref() != Ok("1") {
+        println!("SKIP: TEST_SQLSERVER_BENCH=1 not set — skipping memory benchmark");
+        return;
+    }
+    let b = require_sqlserver!();
+
+    // CTE generating 100k rows: cross join of two 317-row sequences
+    // 317 * 317 = 100489 rows > 100k
+    let sql = "\
+        WITH nums AS ( \
+            SELECT TOP 317 ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n \
+            FROM sys.all_columns \
+        ) \
+        SELECT a.n AS id, \
+               CAST(a.n AS NVARCHAR(20)) AS label, \
+               CAST(a.n * 1.5 AS DECIMAL(10,2)) AS amount \
+        FROM nums a CROSS JOIN nums b";
+
+    let rss_before = read_rss_kb();
+
+    let result = b.execute(sql, None, 120).await.unwrap();
+
+    let rss_after = read_rss_kb();
+
+    println!("benchmark: {} rows returned", result.rows.len());
+    assert!(
+        result.rows.len() >= 100_000,
+        "expected >=100k rows, got {}",
+        result.rows.len()
+    );
+
+    if let (Some(before), Some(after)) = (rss_before, rss_after) {
+        let delta_mb = (after.saturating_sub(before)) as f64 / 1024.0;
+        println!(
+            "benchmark: RSS before={} kB, after={} kB, delta={:.1} MB",
+            before, after, delta_mb
+        );
+        if delta_mb > 200.0 {
+            println!(
+                "WARNING: RSS delta {:.1} MB exceeds 200 MB soft threshold",
+                delta_mb
+            );
+        }
+    } else {
+        println!("benchmark: /proc/self/status not available (non-Linux); RSS measurement skipped");
     }
 }

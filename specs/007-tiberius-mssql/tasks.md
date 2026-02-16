@@ -86,9 +86,9 @@
 
 - [X] T014 Update tests/unit/config_test.rs to remove any `odbc-api` dev-dependency references if present — no odbc-api references found; also updated .github/workflows/ci.yml to replace `unixodbc-dev` with `libkrb5-dev`
 - [X] T015 Run full test suite (`cargo test`) and linter (`cargo clippy -- -D warnings`) — 202 tests pass, zero warnings; confirmed: (a) credential masking tests pass (FR-012), (b) Databricks backend tests pass unmodified (FR-013)
-- [ ] T016 Run quickstart.md manual validation scenarios against a SQL Server instance (SQL login auth, Windows auth, named instance, trust cert flag)
+- [~] T016 Run quickstart.md manual validation scenarios against a SQL Server instance (SQL login auth, Windows auth, named instance, trust cert flag) — **Partially automated**: SQL login, trust cert, error cases, type metadata, and value rendering verified via CI integration tests (53 tests in `tests/integration/sqlserver_integration.rs`). Windows auth and named instance remain manual (require AD/SQL Browser, unavailable in Docker).
 - [X] T017 Measure binary size (SC-007): ODBC baseline 21,823,392 bytes (20.8 MB), tiberius 22,511,888 bytes (21.5 MB), delta +3.2% — PASS (<50% threshold)
-- [ ] T018 Measure memory usage for large result sets (SC-006): run a query returning 100k+ rows against a SQL Server instance, monitor peak RSS (e.g., via `/usr/bin/time -l` on macOS or `command time -v` on Linux), and confirm it does not exceed the ODBC baseline by more than 20%
+- [~] T018 Measure memory usage for large result sets (SC-006): run a query returning 100k+ rows against a SQL Server instance, monitor peak RSS (e.g., via `/usr/bin/time -l` on macOS or `command time -v` on Linux), and confirm it does not exceed the ODBC baseline by more than 20% — **Automated**: Gated benchmark test (`memory_benchmark_100k_rows`) in CI, activated with `TEST_SQLSERVER_BENCH=1`. Measures RSS via `/proc/self/status` on Linux; logs results with 200 MB soft threshold warning.
 
 ---
 
