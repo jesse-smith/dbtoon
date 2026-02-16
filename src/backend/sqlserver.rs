@@ -132,6 +132,11 @@ impl SqlServerBackend {
     fn build_tiberius_config(&self) -> Result<Config, DbtoonError> {
         let (host, port, instance) = parse_server_address(&self.server)?;
 
+        // Resolve hostname to FQDN for Kerberos SPN construction.
+        // Tiberius builds the SPN as MSSQLSvc/{host}:{port}, and Active Directory
+        // typically registers SPNs with the FQDN, not the short hostname.
+        let host = resolve_fqdn(&host);
+
         let mut config = Config::new();
         config.host(&host);
         config.port(port.unwrap_or(1433));
@@ -161,6 +166,31 @@ impl SqlServerBackend {
         config.encryption(EncryptionLevel::Required);
 
         Ok(config)
+    }
+}
+
+/// Resolve a hostname to its FQDN via DNS lookup.
+/// Falls back to the original hostname if resolution fails.
+fn resolve_fqdn(host: &str) -> String {
+    use std::net::ToSocketAddrs;
+    // If it already looks like a FQDN (contains a dot), use as-is.
+    if host.contains('.') {
+        return host.to_string();
+    }
+    // Resolve and extract the canonical name from the first result.
+    match (host, 0u16).to_socket_addrs() {
+        Ok(mut addrs) => {
+            if let Some(addr) = addrs.next() {
+                // Reverse-lookup the IP to get the FQDN.
+                match dns_lookup::lookup_addr(&addr.ip()) {
+                    Ok(fqdn) if fqdn.contains('.') => fqdn,
+                    _ => host.to_string(),
+                }
+            } else {
+                host.to_string()
+            }
+        }
+        Err(_) => host.to_string(),
     }
 }
 
