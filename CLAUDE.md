@@ -47,4 +47,21 @@ When a feature branch is merged to main:
 2. Commit the status updates
 
 See `specs/STATUS.md` for the current feature registry.
+
+## Release Workflow
+
+Releases use `cargo-release` + `cargo-dist`. Never manually edit the version in `Cargo.toml` or create tags by hand.
+
+To release, run one of:
+```bash
+cargo release patch --execute   # 0.2.0 → 0.2.1
+cargo release minor --execute   # 0.2.0 → 0.3.0
+cargo release major --execute   # 0.2.0 → 1.0.0
+```
+
+This automatically: bumps `Cargo.toml` version, updates `Cargo.lock`, commits, tags (`v{version}`), and pushes. The pushed tag triggers the cargo-dist GitHub Actions workflow to build platform binaries and create a GitHub Release.
+
+- Always run from the `main` branch (enforced by config).
+- Omit `--execute` for a dry run first.
+- Ensure all tests and clippy pass before releasing.
 <!-- MANUAL ADDITIONS END -->
