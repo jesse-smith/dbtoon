@@ -2,6 +2,8 @@ pub mod backend;
 pub mod cli;
 pub mod config;
 pub mod error;
+pub mod init;
+pub mod profile;
 pub mod format;
 pub mod format_arrow;
 pub mod format_columnar;

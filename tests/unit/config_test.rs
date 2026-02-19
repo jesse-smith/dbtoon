@@ -1,13 +1,13 @@
-use dbtoon::cli::{ExecArgs, ListWarehousesArgs};
 use dbtoon::config::{
-    env_non_empty, load_from_exec_args, load_from_list_warehouses_args, non_empty, BackendConfig,
-    SqlServerAuth,
+    self, default_config_path, env_non_empty, load_toml_config_required,
+    non_empty, resolve_env_var, resolve_profile_string, resolve_profile_secret,
+    BackendConfig, SqlServerAuth, TomlConfig, TomlProfile,
 };
 use secrecy::ExposeSecret;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-// --- Env var test infrastructure (T001) ---
+// --- Env var test infrastructure ---
 
 /// Static mutex to serialize tests that touch process env vars.
 static ENV_MUTEX: Mutex<()> = Mutex::new(());
@@ -24,7 +24,6 @@ impl EnvGuard {
     fn new(vars: &[(&str, &str)]) -> Self {
         let lock = ENV_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
         for (key, val) in vars {
-            // SAFETY: env var access is serialized by ENV_MUTEX
             unsafe { std::env::set_var(key, val); }
         }
         EnvGuard {
@@ -37,190 +36,24 @@ impl EnvGuard {
 impl Drop for EnvGuard {
     fn drop(&mut self) {
         for key in &self.keys {
-            // SAFETY: env var access is serialized by ENV_MUTEX
             unsafe { std::env::remove_var(key); }
         }
     }
 }
 
-fn make_exec_args(overrides: impl FnOnce(&mut ExecArgs)) -> ExecArgs {
-    let mut args = ExecArgs {
-        sql: Some("SELECT 1".to_string()),
-        sql_file: None,
-        backend: None,
-        server: None,
-        database: None,
-        username: None,
-        password: None,
-        windows_auth: false,
-        trust_server_certificate: false,
-        host: None,
-        token: None,
-        warehouse: None,
-        catalog: None,
-        schema: None,
-        limit: None,
-        no_limit: false,
-        timeout: None,
-        output: None,
-        profile: None,
-    };
-    overrides(&mut args);
-    args
-}
-
-#[test]
-fn test_sqlserver_windows_auth_config() {
-    let args = make_exec_args(|a| {
-        a.backend = Some("sqlserver".to_string());
-        a.server = Some("localhost".to_string());
-        a.database = Some("testdb".to_string());
-        a.windows_auth = true;
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    match &config.backend {
-        BackendConfig::SqlServer { server, database, auth, .. } => {
-            assert_eq!(server, "localhost");
-            assert_eq!(database.as_deref(), Some("testdb"));
-            assert!(matches!(auth, SqlServerAuth::WindowsIntegrated));
-        }
-        _ => panic!("Expected SqlServer backend"),
+/// Helper to build a TomlConfig with a single profile for testing.
+fn make_toml_config(profile_name: &str, profile: TomlProfile) -> TomlConfig {
+    let mut profiles = std::collections::HashMap::new();
+    profiles.insert(profile_name.to_string(), profile);
+    TomlConfig {
+        defaults: Default::default(),
+        profiles,
     }
 }
 
-#[test]
-fn test_sqlserver_sql_auth_config() {
-    let args = make_exec_args(|a| {
-        a.backend = Some("sqlserver".to_string());
-        a.server = Some("localhost".to_string());
-        a.username = Some("sa".to_string());
-        a.password = Some("secret".to_string());
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    match &config.backend {
-        BackendConfig::SqlServer { auth, .. } => {
-            assert!(matches!(auth, SqlServerAuth::SqlLogin { .. }));
-        }
-        _ => panic!("Expected SqlServer backend"),
-    }
-}
-
-#[test]
-fn test_missing_backend_errors() {
-    let args = make_exec_args(|_| {});
-    let result = load_from_exec_args(&args, false, false, None);
-    assert!(result.is_err());
-    let err = result.unwrap_err().to_string();
-    assert!(err.contains("no backend specified"), "Got: {}", err);
-}
-
-#[test]
-fn test_default_row_limit() {
-    let args = make_exec_args(|a| {
-        a.backend = Some("sqlserver".to_string());
-        a.server = Some("localhost".to_string());
-        a.windows_auth = true;
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    assert_eq!(config.default_row_limit, Some(500));
-}
-
-#[test]
-fn test_no_limit_flag() {
-    let args = make_exec_args(|a| {
-        a.backend = Some("sqlserver".to_string());
-        a.server = Some("localhost".to_string());
-        a.windows_auth = true;
-        a.no_limit = true;
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    assert_eq!(config.default_row_limit, None);
-}
-
-#[test]
-fn test_default_timeout() {
-    let args = make_exec_args(|a| {
-        a.backend = Some("sqlserver".to_string());
-        a.server = Some("localhost".to_string());
-        a.windows_auth = true;
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    assert_eq!(config.query_timeout_secs, 60);
-}
-
-#[test]
-fn test_default_allow_write_is_false() {
-    let args = make_exec_args(|a| {
-        a.backend = Some("sqlserver".to_string());
-        a.server = Some("localhost".to_string());
-        a.windows_auth = true;
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    assert!(!config.allow_write);
-}
-
-#[test]
-fn test_config_file_not_found_errors() {
-    let args = make_exec_args(|a| {
-        a.backend = Some("sqlserver".to_string());
-        a.server = Some("localhost".to_string());
-        a.windows_auth = true;
-    });
-
-    let bad_path = PathBuf::from("/nonexistent/config.toml");
-    let result = load_from_exec_args(&args, false, false, Some(&bad_path));
-    assert!(result.is_err());
-    let err = result.unwrap_err().to_string();
-    assert!(err.contains("config file not found"), "Got: {}", err);
-}
-
-#[test]
-fn test_explicit_limit_overrides_default() {
-    let args = make_exec_args(|a| {
-        a.backend = Some("sqlserver".to_string());
-        a.server = Some("localhost".to_string());
-        a.windows_auth = true;
-        a.limit = Some(100);
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    assert_eq!(config.default_row_limit, Some(100));
-}
-
-#[test]
-fn test_explicit_timeout_overrides_default() {
-    let args = make_exec_args(|a| {
-        a.backend = Some("sqlserver".to_string());
-        a.server = Some("localhost".to_string());
-        a.windows_auth = true;
-        a.timeout = Some(120);
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    assert_eq!(config.query_timeout_secs, 120);
-}
-
-#[test]
-fn test_no_limit_overrides_explicit_limit() {
-    let args = make_exec_args(|a| {
-        a.backend = Some("sqlserver".to_string());
-        a.server = Some("localhost".to_string());
-        a.windows_auth = true;
-        a.limit = Some(100);
-        a.no_limit = true;
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    assert_eq!(config.default_row_limit, None);
-}
-
-// --- T002: Unit tests for non_empty ---
+// =====================================================================
+// T002: Unit tests for non_empty
+// =====================================================================
 
 #[test]
 fn test_non_empty_none() {
@@ -237,12 +70,13 @@ fn test_non_empty_value() {
     assert_eq!(non_empty(Some("value")), Some("value"));
 }
 
-// --- T003: Unit tests for env_non_empty ---
+// =====================================================================
+// T003: Unit tests for env_non_empty
+// =====================================================================
 
 #[test]
 fn test_env_non_empty_unset() {
     let _guard = EnvGuard::new(&[]);
-    // Ensure the var is not set
     unsafe { std::env::remove_var("TEST_ENV_NON_EMPTY_UNSET"); }
     assert_eq!(env_non_empty("TEST_ENV_NON_EMPTY_UNSET"), None);
 }
@@ -259,7 +93,165 @@ fn test_env_non_empty_value() {
     assert_eq!(env_non_empty("TEST_ENV_NON_EMPTY_VAL"), Some("value".to_string()));
 }
 
-// --- T006: Standard Databricks env var fallback (US1) ---
+// =====================================================================
+// T004: Unit tests for default_config_path()
+// =====================================================================
+
+#[test]
+fn test_default_config_path_with_home() {
+    let _guard = EnvGuard::new(&[("HOME", "/Users/testuser")]);
+    let path = default_config_path();
+    assert_eq!(
+        path,
+        Some(PathBuf::from("/Users/testuser/.config/dbtoon/config.toml"))
+    );
+}
+
+#[test]
+fn test_default_config_path_no_home() {
+    let _guard = EnvGuard::new(&[]);
+    unsafe { std::env::remove_var("HOME"); }
+    let path = default_config_path();
+    assert_eq!(path, None);
+}
+
+// =====================================================================
+// T005: Unit tests for resolve_env_var()
+// =====================================================================
+
+#[test]
+fn test_resolve_env_var_literal_passthrough() {
+    let result = resolve_env_var("plain_value").unwrap();
+    assert_eq!(result, "plain_value");
+}
+
+#[test]
+fn test_resolve_env_var_dollar_reference() {
+    let _guard = EnvGuard::new(&[("TEST_RESOLVE_VAR", "resolved_value")]);
+    let result = resolve_env_var("$TEST_RESOLVE_VAR").unwrap();
+    assert_eq!(result, "resolved_value");
+}
+
+#[test]
+fn test_resolve_env_var_dollar_dollar_escape() {
+    let result = resolve_env_var("$$pecial").unwrap();
+    assert_eq!(result, "$pecial");
+}
+
+#[test]
+fn test_resolve_env_var_unset_var_error() {
+    let _guard = EnvGuard::new(&[]);
+    unsafe { std::env::remove_var("NONEXISTENT_TEST_VAR_009"); }
+    let result = resolve_env_var("$NONEXISTENT_TEST_VAR_009");
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("NONEXISTENT_TEST_VAR_009"), "Got: {}", err);
+    assert!(err.contains("not set"), "Got: {}", err);
+}
+
+#[test]
+fn test_resolve_profile_string_none() {
+    let result = resolve_profile_string(None).unwrap();
+    assert_eq!(result, None);
+}
+
+#[test]
+fn test_resolve_profile_string_literal() {
+    let result = resolve_profile_string(Some("literal")).unwrap();
+    assert_eq!(result, Some("literal".to_string()));
+}
+
+#[test]
+fn test_resolve_profile_string_var() {
+    let _guard = EnvGuard::new(&[("TEST_PROFILE_STR", "resolved")]);
+    let result = resolve_profile_string(Some("$TEST_PROFILE_STR")).unwrap();
+    assert_eq!(result, Some("resolved".to_string()));
+}
+
+#[test]
+fn test_resolve_profile_secret_var() {
+    let _guard = EnvGuard::new(&[("TEST_PROFILE_SECRET", "secret_val")]);
+    let result = resolve_profile_secret(Some("$TEST_PROFILE_SECRET")).unwrap();
+    assert_eq!(result.unwrap().expose_secret(), "secret_val");
+}
+
+// =====================================================================
+// T006: CLI parsing tests — covered in cli_test.rs
+// =====================================================================
+
+// =====================================================================
+// T007: Config-missing error directs user to `dbtoon init`
+// =====================================================================
+
+#[test]
+fn test_config_missing_error_mentions_init() {
+    let _guard = EnvGuard::new(&[("HOME", "/tmp/dbtoon-test-nonexistent")]);
+    let result = load_toml_config_required(None);
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("dbtoon init"), "Error should mention 'dbtoon init', got: {}", err);
+}
+
+#[test]
+fn test_config_explicit_not_found_errors() {
+    let bad_path = PathBuf::from("/nonexistent/config.toml");
+    let result = load_toml_config_required(Some(&bad_path));
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("config file not found"), "Got: {}", err);
+    assert!(err.contains("dbtoon init"), "Got: {}", err);
+}
+
+// =====================================================================
+// Profile loading and backend config tests
+// =====================================================================
+
+#[test]
+fn test_sqlserver_windows_auth_config() {
+    let profile = TomlProfile {
+        backend: Some("sqlserver".to_string()),
+        server: Some("localhost".to_string()),
+        database: Some("testdb".to_string()),
+        windows_auth: Some(true),
+        ..Default::default()
+    };
+    let backend = config::build_backend_config(&profile, None, None).unwrap();
+    match &backend {
+        BackendConfig::SqlServer { server, database, auth, .. } => {
+            assert_eq!(server, "localhost");
+            assert_eq!(database.as_deref(), Some("testdb"));
+            assert!(matches!(auth, SqlServerAuth::WindowsIntegrated));
+        }
+        _ => panic!("Expected SqlServer backend"),
+    }
+}
+
+#[test]
+fn test_sqlserver_sql_auth_config() {
+    let profile = TomlProfile {
+        backend: Some("sqlserver".to_string()),
+        server: Some("localhost".to_string()),
+        username: Some("sa".to_string()),
+        password: Some("secret".to_string()),
+        ..Default::default()
+    };
+    let backend = config::build_backend_config(&profile, None, None).unwrap();
+    match &backend {
+        BackendConfig::SqlServer { auth, .. } => {
+            assert!(matches!(auth, SqlServerAuth::SqlLogin { .. }));
+        }
+        _ => panic!("Expected SqlServer backend"),
+    }
+}
+
+#[test]
+fn test_missing_backend_errors() {
+    let profile = TomlProfile::default();
+    let result = config::build_backend_config(&profile, None, None);
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("backend"), "Got: {}", err);
+}
 
 #[test]
 fn test_databricks_std_env_fallback() {
@@ -271,12 +263,12 @@ fn test_databricks_std_env_fallback() {
         ("DATABRICKS_SCHEMA", "std-schema"),
     ]);
 
-    let args = make_exec_args(|a| {
-        a.backend = Some("databricks".to_string());
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    match &config.backend {
+    let profile = TomlProfile {
+        backend: Some("databricks".to_string()),
+        ..Default::default()
+    };
+    let backend = config::build_backend_config(&profile, None, None).unwrap();
+    match &backend {
         BackendConfig::Databricks { host, token, warehouse_id, catalog, schema } => {
             assert_eq!(host, "https://std-host.azuredatabricks.net");
             assert_eq!(token.expose_secret(), "dapi-std-token");
@@ -288,90 +280,25 @@ fn test_databricks_std_env_fallback() {
     }
 }
 
-// --- T007: dbtoon-specific env overrides standard env (US1) ---
-
-#[test]
-fn test_dbtoon_env_overrides_std_env() {
-    let _guard = EnvGuard::new(&[
-        ("DATABRICKS_HOST", "https://std-host.azuredatabricks.net"),
-        ("DATABRICKS_TOKEN", "dapi-std-token"),
-        ("DATABRICKS_SQL_WAREHOUSE_ID", "std-warehouse"),
-        ("DATABRICKS_CATALOG", "std-catalog"),
-        ("DATABRICKS_SCHEMA", "std-schema"),
-    ]);
-
-    // Simulate clap having resolved dbtoon-specific env vars into args
-    let args = make_exec_args(|a| {
-        a.backend = Some("databricks".to_string());
-        a.host = Some("https://dbtoon-host.azuredatabricks.net".to_string());
-        a.token = Some("dapi-dbtoon-token".to_string());
-        a.warehouse = Some("dbtoon-warehouse".to_string());
-        a.catalog = Some("dbtoon-catalog".to_string());
-        a.schema = Some("dbtoon-schema".to_string());
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    match &config.backend {
-        BackendConfig::Databricks { host, token, warehouse_id, catalog, schema } => {
-            assert_eq!(host, "https://dbtoon-host.azuredatabricks.net");
-            assert_eq!(token.expose_secret(), "dapi-dbtoon-token");
-            assert_eq!(warehouse_id, "dbtoon-warehouse");
-            assert_eq!(catalog.as_deref(), Some("dbtoon-catalog"));
-            assert_eq!(schema.as_deref(), Some("dbtoon-schema"));
-        }
-        _ => panic!("Expected Databricks backend"),
-    }
-}
-
-fn make_list_warehouses_args(overrides: impl FnOnce(&mut ListWarehousesArgs)) -> ListWarehousesArgs {
-    let mut args = ListWarehousesArgs {
-        host: None,
-        token: None,
-        profile: None,
-    };
-    overrides(&mut args);
-    args
-}
-
-/// Write a TOML config to a temp file and return its path.
-fn write_temp_toml(content: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join("dbtoon-test");
-    std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join(format!("config-{}.toml", std::process::id()));
-    std::fs::write(&path, content).unwrap();
-    path
-}
-
-// --- T010: TOML profile overrides standard env vars (US2) ---
-
 #[test]
 fn test_toml_profile_overrides_std_env() {
     let _guard = EnvGuard::new(&[
         ("DATABRICKS_HOST", "https://std-host.azuredatabricks.net"),
         ("DATABRICKS_TOKEN", "dapi-std-token"),
         ("DATABRICKS_SQL_WAREHOUSE_ID", "std-warehouse"),
-        ("DATABRICKS_CATALOG", "std-catalog"),
-        ("DATABRICKS_SCHEMA", "std-schema"),
     ]);
 
-    let toml_content = r#"
-[profiles.test]
-backend = "databricks"
-host = "https://toml-host.azuredatabricks.net"
-token = "dapi-toml-token"
-warehouse_id = "toml-warehouse"
-catalog = "toml-catalog"
-schema = "toml-schema"
-"#;
-    let config_path = write_temp_toml(toml_content);
-
-    let args = make_exec_args(|a| {
-        a.backend = Some("databricks".to_string());
-        a.profile = Some("test".to_string());
-    });
-
-    let config = load_from_exec_args(&args, false, false, Some(&config_path)).unwrap();
-    match &config.backend {
+    let profile = TomlProfile {
+        backend: Some("databricks".to_string()),
+        host: Some("https://toml-host.azuredatabricks.net".to_string()),
+        token: Some("dapi-toml-token".to_string()),
+        warehouse_id: Some("toml-warehouse".to_string()),
+        catalog: Some("toml-catalog".to_string()),
+        schema: Some("toml-schema".to_string()),
+        ..Default::default()
+    };
+    let backend = config::build_backend_config(&profile, None, None).unwrap();
+    match &backend {
         BackendConfig::Databricks { host, token, warehouse_id, catalog, schema } => {
             assert_eq!(host, "https://toml-host.azuredatabricks.net");
             assert_eq!(token.expose_secret(), "dapi-toml-token");
@@ -381,11 +308,7 @@ schema = "toml-schema"
         }
         _ => panic!("Expected Databricks backend"),
     }
-
-    std::fs::remove_file(&config_path).ok();
 }
-
-// --- T011: Partial TOML profile falls through to standard env (US2) ---
 
 #[test]
 fn test_toml_partial_profile_falls_through_to_std_env() {
@@ -397,246 +320,511 @@ fn test_toml_partial_profile_falls_through_to_std_env() {
         ("DATABRICKS_SCHEMA", "std-schema"),
     ]);
 
-    let toml_content = r#"
-[profiles.partial]
-backend = "databricks"
-host = "https://toml-host.azuredatabricks.net"
-token = "dapi-toml-token"
-warehouse_id = "toml-warehouse"
-"#;
-    let config_path = write_temp_toml(toml_content);
-
-    let args = make_exec_args(|a| {
-        a.backend = Some("databricks".to_string());
-        a.profile = Some("partial".to_string());
-    });
-
-    let config = load_from_exec_args(&args, false, false, Some(&config_path)).unwrap();
-    match &config.backend {
+    let profile = TomlProfile {
+        backend: Some("databricks".to_string()),
+        host: Some("https://toml-host.azuredatabricks.net".to_string()),
+        token: Some("dapi-toml-token".to_string()),
+        warehouse_id: Some("toml-warehouse".to_string()),
+        ..Default::default()
+    };
+    let backend = config::build_backend_config(&profile, None, None).unwrap();
+    match &backend {
         BackendConfig::Databricks { host, catalog, .. } => {
             assert_eq!(host, "https://toml-host.azuredatabricks.net");
             assert_eq!(catalog.as_deref(), Some("env-catalog"));
         }
         _ => panic!("Expected Databricks backend"),
     }
-
-    std::fs::remove_file(&config_path).ok();
 }
 
-// --- T012: list-warehouses standard env var fallback (US2) ---
-
 #[test]
-fn test_list_warehouses_std_env_fallback() {
+fn test_cli_database_override() {
     let _guard = EnvGuard::new(&[
-        ("DATABRICKS_HOST", "https://std-host.azuredatabricks.net"),
-        ("DATABRICKS_TOKEN", "dapi-std-token"),
-        ("DATABRICKS_SQL_WAREHOUSE_ID", "std-warehouse"),
-        ("DATABRICKS_CATALOG", "std-catalog"),
-        ("DATABRICKS_SCHEMA", "std-schema"),
+        ("DATABRICKS_HOST", "https://host.azuredatabricks.net"),
+        ("DATABRICKS_TOKEN", "dapi-token"),
+        ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
+        ("DATABRICKS_CATALOG", "env-catalog"),
     ]);
 
-    let args = make_list_warehouses_args(|_| {});
-
-    let config = load_from_list_warehouses_args(&args, false, false, None).unwrap();
-    match &config.backend {
-        BackendConfig::Databricks { host, token, warehouse_id, catalog, schema } => {
-            assert_eq!(host, "https://std-host.azuredatabricks.net");
-            assert_eq!(token.expose_secret(), "dapi-std-token");
-            assert_eq!(warehouse_id, "std-warehouse");
-            assert_eq!(catalog.as_deref(), Some("std-catalog"));
-            assert_eq!(schema.as_deref(), Some("std-schema"));
+    let profile = TomlProfile {
+        backend: Some("databricks".to_string()),
+        ..Default::default()
+    };
+    let backend = config::build_backend_config(&profile, Some("cli-catalog"), None).unwrap();
+    match &backend {
+        BackendConfig::Databricks { catalog, .. } => {
+            assert_eq!(catalog.as_deref(), Some("cli-catalog"));
         }
         _ => panic!("Expected Databricks backend"),
     }
 }
 
-// --- T015: CLI flag overrides all tiers (US3) ---
-
 #[test]
-fn test_cli_flag_overrides_all_tiers() {
+fn test_cli_schema_override() {
     let _guard = EnvGuard::new(&[
-        ("DATABRICKS_HOST", "https://std-host.azuredatabricks.net"),
-        ("DATABRICKS_TOKEN", "dapi-std-token"),
-        ("DATABRICKS_SQL_WAREHOUSE_ID", "std-warehouse"),
+        ("DATABRICKS_HOST", "https://host.azuredatabricks.net"),
+        ("DATABRICKS_TOKEN", "dapi-token"),
+        ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
     ]);
 
-    let toml_content = r#"
-[profiles.test]
-backend = "databricks"
-host = "https://toml-host.azuredatabricks.net"
-token = "dapi-toml-token"
-warehouse_id = "toml-warehouse"
-"#;
-    let config_path = write_temp_toml(toml_content);
-
-    let args = make_exec_args(|a| {
-        a.backend = Some("databricks".to_string());
-        a.profile = Some("test".to_string());
-        a.host = Some("https://cli-host.azuredatabricks.net".to_string());
-        a.token = Some("dapi-cli-token".to_string());
-        a.warehouse = Some("cli-warehouse".to_string());
-    });
-
-    let config = load_from_exec_args(&args, false, false, Some(&config_path)).unwrap();
-    match &config.backend {
-        BackendConfig::Databricks { host, token, warehouse_id, .. } => {
-            assert_eq!(host, "https://cli-host.azuredatabricks.net");
-            assert_eq!(token.expose_secret(), "dapi-cli-token");
-            assert_eq!(warehouse_id, "cli-warehouse");
-        }
-        _ => panic!("Expected Databricks backend"),
-    }
-
-    std::fs::remove_file(&config_path).ok();
-}
-
-// --- T016: Empty dbtoon env falls through to standard env (US3) ---
-
-#[test]
-fn test_empty_dbtoon_env_falls_through_to_std_env() {
-    let _guard = EnvGuard::new(&[
-        ("DATABRICKS_HOST", "https://std-host.azuredatabricks.net"),
-        ("DATABRICKS_TOKEN", "dapi-std-token"),
-        ("DATABRICKS_SQL_WAREHOUSE_ID", "std-warehouse"),
-    ]);
-
-    // Simulate clap resolving empty DBTOON_DATABRICKS_HOST to Some("")
-    let args = make_exec_args(|a| {
-        a.backend = Some("databricks".to_string());
-        a.host = Some(String::new());
-        a.token = Some(String::new());
-        a.warehouse = Some(String::new());
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    match &config.backend {
-        BackendConfig::Databricks { host, token, warehouse_id, .. } => {
-            assert_eq!(host, "https://std-host.azuredatabricks.net");
-            assert_eq!(token.expose_secret(), "dapi-std-token");
-            assert_eq!(warehouse_id, "std-warehouse");
+    let profile = TomlProfile {
+        backend: Some("databricks".to_string()),
+        schema: Some("profile-schema".to_string()),
+        ..Default::default()
+    };
+    let backend = config::build_backend_config(&profile, None, Some("cli-schema")).unwrap();
+    match &backend {
+        BackendConfig::Databricks { schema, .. } => {
+            assert_eq!(schema.as_deref(), Some("cli-schema"));
         }
         _ => panic!("Expected Databricks backend"),
     }
 }
 
-// --- T017: Empty standard env treated as unset (US3) ---
-
 #[test]
-fn test_empty_std_env_treated_as_unset() {
+fn test_dollar_var_resolution_in_profile() {
     let _guard = EnvGuard::new(&[
-        ("DATABRICKS_HOST", ""),
+        ("MY_HOST", "https://resolved-host.azuredatabricks.net"),
+        ("MY_TOKEN", "dapi-resolved-token"),
+        ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
     ]);
 
-    let args = make_exec_args(|a| {
-        a.backend = Some("databricks".to_string());
-    });
+    let profile = TomlProfile {
+        backend: Some("databricks".to_string()),
+        host: Some("$MY_HOST".to_string()),
+        token: Some("$MY_TOKEN".to_string()),
+        ..Default::default()
+    };
+    let backend = config::build_backend_config(&profile, None, None).unwrap();
+    match &backend {
+        BackendConfig::Databricks { host, token, .. } => {
+            assert_eq!(host, "https://resolved-host.azuredatabricks.net");
+            assert_eq!(token.expose_secret(), "dapi-resolved-token");
+        }
+        _ => panic!("Expected Databricks backend"),
+    }
+}
 
-    let result = load_from_exec_args(&args, false, false, None);
+#[test]
+fn test_dollar_var_unset_error_in_profile() {
+    let _guard = EnvGuard::new(&[]);
+    unsafe { std::env::remove_var("UNSET_VAR_FOR_TEST_009"); }
+
+    let profile = TomlProfile {
+        backend: Some("databricks".to_string()),
+        host: Some("$UNSET_VAR_FOR_TEST_009".to_string()),
+        ..Default::default()
+    };
+    let result = config::build_backend_config(&profile, None, None);
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
-    assert!(err.contains("no host specified"), "Got: {}", err);
+    assert!(err.contains("UNSET_VAR_FOR_TEST_009"), "Got: {}", err);
 }
 
+// =====================================================================
+// Query args config loading
+// =====================================================================
+
 #[test]
-fn test_empty_std_env_catalog_treated_as_none() {
+fn test_load_from_query_args_basic() {
     let _guard = EnvGuard::new(&[
         ("DATABRICKS_HOST", "https://host.azuredatabricks.net"),
         ("DATABRICKS_TOKEN", "dapi-token"),
         ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
-        ("DATABRICKS_CATALOG", ""),
     ]);
 
-    let args = make_exec_args(|a| {
-        a.backend = Some("databricks".to_string());
+    let toml_config = make_toml_config("dev", TomlProfile {
+        backend: Some("databricks".to_string()),
+        ..Default::default()
     });
 
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    match &config.backend {
+    let args = dbtoon::cli::QueryArgs {
+        sql: Some("SELECT 1".to_string()),
+        file: None,
+        profile: "dev".to_string(),
+        database: None,
+        catalog: None,
+        schema: None,
+        limit: None,
+        no_limit: false,
+        timeout: None,
+        output: None,
+        allow_write: false,
+    };
+
+    let app_config = config::load_from_query_args(&args, &toml_config, false, false).unwrap();
+    assert_eq!(app_config.default_row_limit, Some(500));
+    assert_eq!(app_config.query_timeout_secs, 60);
+    assert!(!app_config.allow_write);
+}
+
+#[test]
+fn test_load_from_query_args_no_limit() {
+    let _guard = EnvGuard::new(&[
+        ("DATABRICKS_HOST", "https://host.azuredatabricks.net"),
+        ("DATABRICKS_TOKEN", "dapi-token"),
+        ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
+    ]);
+
+    let toml_config = make_toml_config("dev", TomlProfile {
+        backend: Some("databricks".to_string()),
+        ..Default::default()
+    });
+
+    let args = dbtoon::cli::QueryArgs {
+        sql: Some("SELECT 1".to_string()),
+        file: None,
+        profile: "dev".to_string(),
+        database: None,
+        catalog: None,
+        schema: None,
+        limit: None,
+        no_limit: true,
+        timeout: None,
+        output: None,
+        allow_write: false,
+    };
+
+    let app_config = config::load_from_query_args(&args, &toml_config, false, false).unwrap();
+    assert_eq!(app_config.default_row_limit, None);
+}
+
+#[test]
+fn test_load_from_query_args_explicit_limit() {
+    let _guard = EnvGuard::new(&[
+        ("DATABRICKS_HOST", "https://host.azuredatabricks.net"),
+        ("DATABRICKS_TOKEN", "dapi-token"),
+        ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
+    ]);
+
+    let toml_config = make_toml_config("dev", TomlProfile {
+        backend: Some("databricks".to_string()),
+        ..Default::default()
+    });
+
+    let args = dbtoon::cli::QueryArgs {
+        sql: Some("SELECT 1".to_string()),
+        file: None,
+        profile: "dev".to_string(),
+        database: None,
+        catalog: None,
+        schema: None,
+        limit: Some(100),
+        no_limit: false,
+        timeout: None,
+        output: None,
+        allow_write: false,
+    };
+
+    let app_config = config::load_from_query_args(&args, &toml_config, false, false).unwrap();
+    assert_eq!(app_config.default_row_limit, Some(100));
+}
+
+#[test]
+fn test_load_from_query_args_allow_write() {
+    let _guard = EnvGuard::new(&[
+        ("DATABRICKS_HOST", "https://host.azuredatabricks.net"),
+        ("DATABRICKS_TOKEN", "dapi-token"),
+        ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
+    ]);
+
+    let toml_config = make_toml_config("dev", TomlProfile {
+        backend: Some("databricks".to_string()),
+        ..Default::default()
+    });
+
+    let args = dbtoon::cli::QueryArgs {
+        sql: Some("SELECT 1".to_string()),
+        file: None,
+        profile: "dev".to_string(),
+        database: None,
+        catalog: None,
+        schema: None,
+        limit: None,
+        no_limit: false,
+        timeout: None,
+        output: None,
+        allow_write: true,
+    };
+
+    let app_config = config::load_from_query_args(&args, &toml_config, false, false).unwrap();
+    assert!(app_config.allow_write);
+}
+
+// =====================================================================
+// T017: Profile loading and config resolution (CLI > profile > defaults > Databricks env)
+// =====================================================================
+
+#[test]
+fn test_toml_defaults_apply_when_profile_missing_field() {
+    let _guard = EnvGuard::new(&[
+        ("DATABRICKS_HOST", "https://host.azuredatabricks.net"),
+        ("DATABRICKS_TOKEN", "dapi-token"),
+        ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
+    ]);
+
+    let mut toml_config = make_toml_config("dev", TomlProfile {
+        backend: Some("databricks".to_string()),
+        ..Default::default()
+    });
+    toml_config.defaults.row_limit = Some(200);
+    toml_config.defaults.timeout = Some(90);
+
+    let args = dbtoon::cli::QueryArgs {
+        sql: Some("SELECT 1".to_string()),
+        file: None,
+        profile: "dev".to_string(),
+        database: None,
+        catalog: None,
+        schema: None,
+        limit: None,
+        no_limit: false,
+        timeout: None,
+        output: None,
+        allow_write: false,
+    };
+
+    let app_config = config::load_from_query_args(&args, &toml_config, false, false).unwrap();
+    assert_eq!(app_config.default_row_limit, Some(200), "should use defaults.row_limit");
+    assert_eq!(app_config.query_timeout_secs, 90, "should use defaults.timeout");
+}
+
+#[test]
+fn test_cli_limit_overrides_defaults() {
+    let _guard = EnvGuard::new(&[
+        ("DATABRICKS_HOST", "https://host.azuredatabricks.net"),
+        ("DATABRICKS_TOKEN", "dapi-token"),
+        ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
+    ]);
+
+    let mut toml_config = make_toml_config("dev", TomlProfile {
+        backend: Some("databricks".to_string()),
+        ..Default::default()
+    });
+    toml_config.defaults.row_limit = Some(200);
+
+    let args = dbtoon::cli::QueryArgs {
+        sql: Some("SELECT 1".to_string()),
+        file: None,
+        profile: "dev".to_string(),
+        database: None,
+        catalog: None,
+        schema: None,
+        limit: Some(50),
+        no_limit: false,
+        timeout: None,
+        output: None,
+        allow_write: false,
+    };
+
+    let app_config = config::load_from_query_args(&args, &toml_config, false, false).unwrap();
+    assert_eq!(app_config.default_row_limit, Some(50), "CLI limit should override defaults");
+}
+
+// =====================================================================
+// T019: --allow-write flag gating write queries
+// =====================================================================
+
+#[test]
+fn test_allow_write_false_by_default() {
+    let _guard = EnvGuard::new(&[
+        ("DATABRICKS_HOST", "https://host.azuredatabricks.net"),
+        ("DATABRICKS_TOKEN", "dapi-token"),
+        ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
+    ]);
+
+    let toml_config = make_toml_config("dev", TomlProfile {
+        backend: Some("databricks".to_string()),
+        ..Default::default()
+    });
+
+    let args = dbtoon::cli::QueryArgs {
+        sql: Some("INSERT INTO t VALUES(1)".to_string()),
+        file: None,
+        profile: "dev".to_string(),
+        database: None,
+        catalog: None,
+        schema: None,
+        limit: None,
+        no_limit: false,
+        timeout: None,
+        output: None,
+        allow_write: false,
+    };
+
+    let app_config = config::load_from_query_args(&args, &toml_config, false, false).unwrap();
+    assert!(!app_config.allow_write, "allow_write should be false by default");
+}
+
+#[test]
+fn test_allow_write_from_defaults() {
+    let _guard = EnvGuard::new(&[
+        ("DATABRICKS_HOST", "https://host.azuredatabricks.net"),
+        ("DATABRICKS_TOKEN", "dapi-token"),
+        ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
+    ]);
+
+    let mut toml_config = make_toml_config("dev", TomlProfile {
+        backend: Some("databricks".to_string()),
+        ..Default::default()
+    });
+    toml_config.defaults.allow_write = Some(true);
+
+    let args = dbtoon::cli::QueryArgs {
+        sql: Some("SELECT 1".to_string()),
+        file: None,
+        profile: "dev".to_string(),
+        database: None,
+        catalog: None,
+        schema: None,
+        limit: None,
+        no_limit: false,
+        timeout: None,
+        output: None,
+        allow_write: false,
+    };
+
+    let app_config = config::load_from_query_args(&args, &toml_config, false, false).unwrap();
+    assert!(app_config.allow_write, "defaults.allow_write should propagate");
+}
+
+// =====================================================================
+// T038-T039: Full resolution hierarchy integration tests
+// =====================================================================
+
+#[test]
+fn test_full_resolution_hierarchy_cli_wins() {
+    let _guard = EnvGuard::new(&[
+        ("DATABRICKS_HOST", "https://env-host.azuredatabricks.net"),
+        ("DATABRICKS_TOKEN", "dapi-env-token"),
+        ("DATABRICKS_SQL_WAREHOUSE_ID", "env-wh"),
+        ("DATABRICKS_CATALOG", "env-catalog"),
+    ]);
+
+    // Profile sets catalog, but CLI override should win
+    let mut toml_config = make_toml_config("dev", TomlProfile {
+        backend: Some("databricks".to_string()),
+        catalog: Some("profile-catalog".to_string()),
+        ..Default::default()
+    });
+    toml_config.defaults.row_limit = Some(200);
+
+    let args = dbtoon::cli::QueryArgs {
+        sql: Some("SELECT 1".to_string()),
+        file: None,
+        profile: "dev".to_string(),
+        database: Some("cli-catalog".to_string()),
+        catalog: None,
+        schema: None,
+        limit: Some(10),
+        no_limit: false,
+        timeout: None,
+        output: None,
+        allow_write: false,
+    };
+
+    let app_config = config::load_from_query_args(&args, &toml_config, false, false).unwrap();
+    match &app_config.backend {
         BackendConfig::Databricks { catalog, .. } => {
-            assert_eq!(catalog.as_deref(), None);
+            assert_eq!(catalog.as_deref(), Some("cli-catalog"), "CLI should win over profile");
         }
         _ => panic!("Expected Databricks backend"),
     }
+    assert_eq!(app_config.default_row_limit, Some(10), "CLI limit should win over defaults");
 }
 
-// --- T018: Independent field resolution (US3) ---
-
 #[test]
-fn test_independent_field_resolution() {
-    let _guard = EnvGuard::new(&[
-        ("DATABRICKS_TOKEN", "std-token"),
-        ("DATABRICKS_SQL_WAREHOUSE_ID", "std-warehouse"),
-    ]);
-
-    let args = make_exec_args(|a| {
-        a.backend = Some("databricks".to_string());
-        a.host = Some("https://cli-host.azuredatabricks.net".to_string());
-    });
-
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    match &config.backend {
-        BackendConfig::Databricks { host, token, warehouse_id, .. } => {
-            assert_eq!(host, "https://cli-host.azuredatabricks.net");
-            assert_eq!(token.expose_secret(), "std-token");
-            assert_eq!(warehouse_id, "std-warehouse");
-        }
-        _ => panic!("Expected Databricks backend"),
-    }
-}
-
-// --- T019: Standard env token fallback (US3) ---
-
-#[test]
-fn test_std_env_token_fallback() {
+fn test_databricks_env_fallback_lowest_priority() {
     let _guard = EnvGuard::new(&[
         ("DATABRICKS_HOST", "https://host.azuredatabricks.net"),
-        ("DATABRICKS_TOKEN", "std-token"),
+        ("DATABRICKS_TOKEN", "dapi-token"),
         ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
+        ("DATABRICKS_CATALOG", "env-catalog-fallback"),
     ]);
 
-    let args = make_exec_args(|a| {
-        a.backend = Some("databricks".to_string());
+    // Profile does NOT set catalog — env var should be used as fallback
+    let toml_config = make_toml_config("dev", TomlProfile {
+        backend: Some("databricks".to_string()),
+        ..Default::default()
     });
 
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    match &config.backend {
-        BackendConfig::Databricks { token, .. } => {
-            assert_eq!(token.expose_secret(), "std-token");
+    let args = dbtoon::cli::QueryArgs {
+        sql: Some("SELECT 1".to_string()),
+        file: None,
+        profile: "dev".to_string(),
+        database: None,
+        catalog: None,
+        schema: None,
+        limit: None,
+        no_limit: false,
+        timeout: None,
+        output: None,
+        allow_write: false,
+    };
+
+    let app_config = config::load_from_query_args(&args, &toml_config, false, false).unwrap();
+    match &app_config.backend {
+        BackendConfig::Databricks { catalog, .. } => {
+            assert_eq!(catalog.as_deref(), Some("env-catalog-fallback"), "Databricks env var should be used as fallback");
         }
         _ => panic!("Expected Databricks backend"),
     }
 }
 
-// --- T020: Dotenv standard vars participate (US3) ---
-
 #[test]
-fn test_dotenv_std_vars_participate() {
+fn test_dollar_var_unset_is_error_not_fallthrough() {
     let _guard = EnvGuard::new(&[
         ("DATABRICKS_TOKEN", "dapi-token"),
         ("DATABRICKS_SQL_WAREHOUSE_ID", "wh-id"),
+        ("DATABRICKS_HOST", "fallback-host"),
     ]);
+    unsafe { std::env::remove_var("UNSET_HOST_FOR_RESOLUTION_TEST"); }
 
-    let dir = std::env::temp_dir().join("dbtoon-dotenv-test");
-    std::fs::create_dir_all(&dir).unwrap();
-    let env_path = dir.join(".env");
-    std::fs::write(&env_path, "DATABRICKS_HOST=https://dotenv-host.azuredatabricks.net\n").unwrap();
-
-    dotenvy::from_path(&env_path).ok();
-
-    let args = make_exec_args(|a| {
-        a.backend = Some("databricks".to_string());
+    // Profile sets host as $VAR reference to unset var — should error, NOT fall through to DATABRICKS_HOST
+    let toml_config = make_toml_config("dev", TomlProfile {
+        backend: Some("databricks".to_string()),
+        host: Some("$UNSET_HOST_FOR_RESOLUTION_TEST".to_string()),
+        ..Default::default()
     });
 
-    let config = load_from_exec_args(&args, false, false, None).unwrap();
-    match &config.backend {
-        BackendConfig::Databricks { host, .. } => {
-            assert_eq!(host, "https://dotenv-host.azuredatabricks.net");
-        }
-        _ => panic!("Expected Databricks backend"),
-    }
+    let args = dbtoon::cli::QueryArgs {
+        sql: Some("SELECT 1".to_string()),
+        file: None,
+        profile: "dev".to_string(),
+        database: None,
+        catalog: None,
+        schema: None,
+        limit: None,
+        no_limit: false,
+        timeout: None,
+        output: None,
+        allow_write: false,
+    };
 
-    // Cleanup
-    unsafe { std::env::remove_var("DATABRICKS_HOST"); }
-    std::fs::remove_file(&env_path).ok();
-    std::fs::remove_dir(&dir).ok();
+    let result = config::load_from_query_args(&args, &toml_config, false, false);
+    assert!(result.is_err(), "$VAR to unset var should error, not fallthrough");
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("UNSET_HOST_FOR_RESOLUTION_TEST"), "Got: {}", err);
+}
+
+// =====================================================================
+// T036: Config-missing error for all config-dependent commands
+// =====================================================================
+
+#[test]
+fn test_config_missing_error_with_explicit_nonexistent_path() {
+    let bad_path = PathBuf::from("/tmp/dbtoon-test-nonexistent-cfg/config.toml");
+    let result = load_toml_config_required(Some(&bad_path));
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("dbtoon init"), "should mention dbtoon init, got: {}", err);
+}
+
+#[test]
+fn test_profile_not_found_errors() {
+    let toml_config = TomlConfig::default();
+    let result = config::load_profile(&toml_config, "nonexistent");
+    assert!(result.is_err());
+    let err = result.unwrap_err().to_string();
+    assert!(err.contains("not found"), "Got: {}", err);
 }
