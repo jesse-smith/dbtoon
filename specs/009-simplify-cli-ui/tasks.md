@@ -23,9 +23,9 @@
 
 **Purpose**: Dependency changes and new module scaffolding
 
-- [ ] T001 Add `toml_edit = "0.25"` and remove `directories` from `Cargo.toml`
-- [ ] T002 [P] Create empty `src/init.rs` with module doc comment, add `pub mod init` to `src/lib.rs`
-- [ ] T003 [P] Create empty `src/profile.rs` with module doc comment, add `pub mod profile` to `src/lib.rs`
+- [X] T001 Add `toml_edit = "0.25"` and remove `directories` from `Cargo.toml`
+- [X] T002 [P] Create empty `src/init.rs` with module doc comment, add `pub mod init` to `src/lib.rs`
+- [X] T003 [P] Create empty `src/profile.rs` with module doc comment, add `pub mod profile` to `src/lib.rs`
 
 ---
 
@@ -39,18 +39,18 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] Write unit tests for `default_config_path()` (HOME-based, no `directories` crate) in `tests/unit/config_test.rs`
-- [ ] T005 [P] Write unit tests for `resolve_env_var()` — literal passthrough, `$VAR` resolution, `$$` escape, unset var error — in `tests/unit/config_test.rs`
-- [ ] T006 [P] Write CLI parsing tests for new command structure (init, query -P, profile subcommands, warehouse list -P, global flags including `-c` custom config path) in `tests/unit/cli_test.rs`
-- [ ] T007 [P] Write test for config-missing error message directing user to `dbtoon init` in `tests/unit/config_test.rs`
+- [X] T004 [P] Write unit tests for `default_config_path()` (HOME-based, no `directories` crate) in `tests/unit/config_test.rs`
+- [X] T005 [P] Write unit tests for `resolve_env_var()` — literal passthrough, `$VAR` resolution, `$$` escape, unset var error — in `tests/unit/config_test.rs`
+- [X] T006 [P] Write CLI parsing tests for new command structure (init, query -P, profile subcommands, warehouse list -P, global flags including `-c` custom config path) in `tests/unit/cli_test.rs`
+- [X] T007 [P] Write test for config-missing error message directing user to `dbtoon init` in `tests/unit/config_test.rs`
 
 ### Implementation for Foundational
 
-- [ ] T008 Replace `directories::ProjectDirs` with `HOME`-based `default_config_path()` in `src/config.rs` (R3)
-- [ ] T009 [P] Implement `resolve_env_var()`, `resolve_profile_string()`, `resolve_profile_secret()` in `src/config.rs` (R2)
-- [ ] T010 Restructure `Command` enum in `src/cli.rs` — replace `ExecRead`/`ExecWrite`/`ListWarehouses` with `Init`/`Query`/`Profile`/`Warehouse` per CLI contract; add `QueryArgs`, `ProfileCommand`, `WarehouseCommand` structs with all flags/args
-- [ ] T011 Implement config-missing check: when config file not found, emit error directing user to `dbtoon init` in `src/config.rs`
-- [ ] T012 Remove all `DBTOON_*` `env` attributes from clap structs in `src/cli.rs` and remove `DBTOON_*` env-var reads from `src/config.rs`
+- [X] T008 Replace `directories::ProjectDirs` with `HOME`-based `default_config_path()` in `src/config.rs` (R3)
+- [X] T009 [P] Implement `resolve_env_var()`, `resolve_profile_string()`, `resolve_profile_secret()` in `src/config.rs` (R2)
+- [X] T010 Restructure `Command` enum in `src/cli.rs` — replace `ExecRead`/`ExecWrite`/`ListWarehouses` with `Init`/`Query`/`Profile`/`Warehouse` per CLI contract; add `QueryArgs`, `ProfileCommand`, `WarehouseCommand` structs with all flags/args
+- [X] T011 Implement config-missing check: when config file not found, emit error directing user to `dbtoon init` in `src/config.rs`
+- [X] T012 Remove all `DBTOON_*` `env` attributes from clap structs in `src/cli.rs` and remove `DBTOON_*` env-var reads from `src/config.rs`
 
 **Checkpoint**: Foundation ready — `cargo test` passes, CLI parses new commands (handlers may still be `todo!()`), `$VAR` resolution works, config path uses HOME
 
@@ -66,13 +66,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [P] [US1] Write unit tests for init template generation (default template, env-var-detected template, directory creation, unwritable directory error) in `tests/unit/init_test.rs`
-- [ ] T014 [P] [US1] Write test for `dbtoon init` when config already exists (should warn, not overwrite) in `tests/unit/init_test.rs`
+- [X] T013 [P] [US1] Write unit tests for init template generation (default template, env-var-detected template, directory creation, unwritable directory error) in `tests/unit/init_test.rs`
+- [X] T014 [P] [US1] Write test for `dbtoon init` when config already exists (should warn, not overwrite) in `tests/unit/init_test.rs`
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Implement `dbtoon init` logic in `src/init.rs`: template generation, Databricks env var detection, directory creation, already-exists guard (R5)
-- [ ] T016 [US1] Wire `Init` command dispatch in `src/main.rs` to call init logic
+- [X] T015 [US1] Implement `dbtoon init` logic in `src/init.rs`: template generation, Databricks env var detection, directory creation, already-exists guard (R5)
+- [X] T016 [US1] Wire `Init` command dispatch in `src/main.rs` to call init logic
 
 **Checkpoint**: `dbtoon init` works end-to-end in a temp directory
 
@@ -88,16 +88,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T017 [P] [US2] Write unit tests for profile loading and config resolution (CLI > profile > defaults > Databricks env fallback) in `tests/unit/config_test.rs`
-- [ ] T018 [P] [US2] Write tests for query input conflict (positional SQL vs `-f`), `--database`/`--catalog` mutual exclusivity, `--no-limit` behavior in `tests/unit/cli_test.rs`
-- [ ] T019 [P] [US2] Write test for `--allow-write` flag gating write queries in `tests/unit/cli_test.rs`
+- [X] T017 [P] [US2] Write unit tests for profile loading and config resolution (CLI > profile > defaults > Databricks env fallback) in `tests/unit/config_test.rs`
+- [X] T018 [P] [US2] Write tests for query input conflict (positional SQL vs `-f`), `--database`/`--catalog` mutual exclusivity, `--no-limit` behavior in `tests/unit/cli_test.rs`
+- [X] T019 [P] [US2] Write test for `--allow-write` flag gating write queries in `tests/unit/cli_test.rs`
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Implement profile loading from TOML config — deserialize `[profiles.<name>]`, resolve `$VAR` fields, apply `[defaults]` fallback in `src/config.rs`
-- [ ] T021 [US2] Implement config resolution hierarchy: CLI flags > profile > defaults > Databricks env vars in `src/config.rs`
-- [ ] T022 [US2] Wire `Query` command dispatch in `src/main.rs` — connect `QueryArgs` to existing query execution logic (backend dispatch, output formatting, write validation)
-- [ ] T023 [US2] Handle `-f`/`--file` SQL input, `--no-limit`, `--limit`, `--timeout`, `--database`/`--catalog`/`--schema` overrides in `src/main.rs`
+- [X] T020 [US2] Implement profile loading from TOML config — deserialize `[profiles.<name>]`, resolve `$VAR` fields, apply `[defaults]` fallback in `src/config.rs`
+- [X] T021 [US2] Implement config resolution hierarchy: CLI flags > profile > defaults > Databricks env vars in `src/config.rs`
+- [X] T022 [US2] Wire `Query` command dispatch in `src/main.rs` — connect `QueryArgs` to existing query execution logic (backend dispatch, output formatting, write validation)
+- [X] T023 [US2] Handle `-f`/`--file` SQL input, `--no-limit`, `--limit`, `--timeout`, `--database`/`--catalog`/`--schema` overrides in `src/main.rs`
 
 **Checkpoint**: `dbtoon query -P dev "SELECT 1"` works with a manually-created config file; all override flags function correctly
 
@@ -113,19 +113,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T024 [P] [US3] Write tests for `profile create` — new profile with `$VAR` defaults, `--set` overrides, duplicate name rejection, field validation per backend in `tests/unit/profile_test.rs`
-- [ ] T025 [P] [US3] Write tests for `profile edit` — `--set key=value`, `--set key=` removal, `--unset key`, invalid field rejection in `tests/unit/profile_test.rs`
-- [ ] T026 [P] [US3] Write tests for `profile show` (resolved values, masking, `--show-secrets` reveals masked values, unset env-var warning), `profile list`, `profile delete`, `profile rename` in `tests/unit/profile_test.rs`
+- [X] T024 [P] [US3] Write tests for `profile create` — new profile with `$VAR` defaults, `--set` overrides, duplicate name rejection, field validation per backend in `tests/unit/profile_test.rs`
+- [X] T025 [P] [US3] Write tests for `profile edit` — `--set key=value`, `--set key=` removal, `--unset key`, invalid field rejection in `tests/unit/profile_test.rs`
+- [X] T026 [P] [US3] Write tests for `profile show` (resolved values, masking, `--show-secrets` reveals masked values, unset env-var warning), `profile list`, `profile delete`, `profile rename` in `tests/unit/profile_test.rs`
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Implement `profile create` in `src/profile.rs` — add `[profiles.<name>]` via `toml_edit`, generate backend-appropriate `$VAR` defaults, apply `--set` overrides, validate fields per backend (R1, R4)
-- [ ] T028 [US3] Implement `profile edit` in `src/profile.rs` — `--set key=value`, `--set key=` removal, `--unset key` removal via `toml_edit` (R1)
-- [ ] T029 [P] [US3] Implement `profile show` in `src/profile.rs` — display resolved values with credential masking, show `$VAR` name + resolved value, warn on unset env vars
-- [ ] T030 [P] [US3] Implement `profile list` in `src/profile.rs` — enumerate `[profiles.*]` keys from config
-- [ ] T031 [P] [US3] Implement `profile delete` in `src/profile.rs` — remove `[profiles.<name>]` via `toml_edit`
-- [ ] T032 [P] [US3] Implement `profile rename` in `src/profile.rs` — rename key in `[profiles]` table via `toml_edit`, preserve all fields
-- [ ] T033 [US3] Wire all `Profile` subcommand dispatches in `src/main.rs`
+- [X] T027 [US3] Implement `profile create` in `src/profile.rs` — add `[profiles.<name>]` via `toml_edit`, generate backend-appropriate `$VAR` defaults, apply `--set` overrides, validate fields per backend (R1, R4)
+- [X] T028 [US3] Implement `profile edit` in `src/profile.rs` — `--set key=value`, `--set key=` removal, `--unset key` removal via `toml_edit` (R1)
+- [X] T029 [P] [US3] Implement `profile show` in `src/profile.rs` — display resolved values with credential masking, show `$VAR` name + resolved value, warn on unset env vars
+- [X] T030 [P] [US3] Implement `profile list` in `src/profile.rs` — enumerate `[profiles.*]` keys from config
+- [X] T031 [P] [US3] Implement `profile delete` in `src/profile.rs` — remove `[profiles.<name>]` via `toml_edit`
+- [X] T032 [P] [US3] Implement `profile rename` in `src/profile.rs` — rename key in `[profiles]` table via `toml_edit`, preserve all fields
+- [X] T033 [US3] Wire all `Profile` subcommand dispatches in `src/main.rs`
 
 **Checkpoint**: Full profile CRUD works; config file comments/formatting preserved across edits
 
@@ -141,11 +141,11 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T034 [US4] Write test for `warehouse list` requiring `-P` flag and rejecting legacy `--host`/`--token` flags in `tests/unit/cli_test.rs`
+- [X] T034 [US4] Write test for `warehouse list` requiring `-P` flag and rejecting legacy `--host`/`--token` flags in `tests/unit/cli_test.rs`
 
 ### Implementation for User Story 4
 
-- [ ] T035 [US4] Wire `Warehouse` command dispatch in `src/main.rs` — connect `warehouse list -P <profile>` to existing warehouse listing logic
+- [X] T035 [US4] Wire `Warehouse` command dispatch in `src/main.rs` — connect `warehouse list -P <profile>` to existing warehouse listing logic
 
 **Checkpoint**: `dbtoon warehouse list -P dbx` works with a configured Databricks profile
 
@@ -161,11 +161,11 @@
 
 ### Tests for User Story 5
 
-- [ ] T036 [US5] Write integration test verifying `query`, `profile list`, and `warehouse list` all produce the "run dbtoon init" error when config is missing in `tests/unit/config_test.rs`
+- [X] T036 [US5] Write integration test verifying `query`, `profile list`, and `warehouse list` all produce the "run dbtoon init" error when config is missing in `tests/unit/config_test.rs`
 
 ### Implementation for User Story 5
 
-- [ ] T037 [US5] Ensure config-missing guard is applied in all command dispatch paths (query, profile *, warehouse) in `src/main.rs`
+- [X] T037 [US5] Ensure config-missing guard is applied in all command dispatch paths (query, profile *, warehouse) in `src/main.rs`
 
 **Checkpoint**: All config-dependent commands show the init hint when config is absent
 
@@ -181,13 +181,13 @@
 
 ### Tests for User Story 6
 
-- [ ] T038 [P] [US6] Write integration tests for full resolution hierarchy — CLI override wins, profile wins over defaults, defaults win over Databricks env, `$VAR` to unset var errors in `tests/unit/config_test.rs`
-- [ ] T039 [P] [US6] Write test for Databricks standard env vars as lowest-priority fallback (e.g., `DATABRICKS_CATALOG` used when no profile/default sets catalog) in `tests/unit/config_test.rs`
+- [X] T038 [P] [US6] Write integration tests for full resolution hierarchy — CLI override wins, profile wins over defaults, defaults win over Databricks env, `$VAR` to unset var errors in `tests/unit/config_test.rs`
+- [X] T039 [P] [US6] Write test for Databricks standard env vars as lowest-priority fallback (e.g., `DATABRICKS_CATALOG` used when no profile/default sets catalog) in `tests/unit/config_test.rs`
 
 ### Implementation for User Story 6
 
-- [ ] T040 [US6] Implement Databricks standard env-var fallback (lowest priority) for `host`, `token`, `warehouse_id`, `catalog`, `schema` in `src/config.rs`
-- [ ] T041 [US6] Verify and fix precedence: CLI > profile > defaults > Databricks env in `src/config.rs` and `src/main.rs`
+- [X] T040 [US6] Implement Databricks standard env-var fallback (lowest priority) for `host`, `token`, `warehouse_id`, `catalog`, `schema` in `src/config.rs`
+- [X] T041 [US6] Verify and fix precedence: CLI > profile > defaults > Databricks env in `src/config.rs` and `src/main.rs`
 
 **Checkpoint**: All 4 resolution levels work with correct precedence; unset `$VAR` references error cleanly
 
@@ -203,11 +203,11 @@
 
 ### Tests for User Story 7
 
-- [ ] T042 [US7] Write tests verifying `exec-read` and `exec-write` are unrecognized subcommands, `--server`/`--host`/`--token` etc. are rejected on `query`, and `DBTOON_*` env vars have no effect in `tests/unit/cli_test.rs`
+- [X] T042 [US7] Write tests verifying `exec-read` and `exec-write` are unrecognized subcommands, `--server`/`--host`/`--token` etc. are rejected on `query`, and `DBTOON_*` env vars have no effect in `tests/unit/cli_test.rs`
 
 ### Implementation for User Story 7
 
-- [ ] T043 [US7] Audit all source files to verify T010/T012 completeness — confirm zero remaining legacy command, flag, or env-var references
+- [X] T043 [US7] Audit all source files to verify T010/T012 completeness — confirm zero remaining legacy command, flag, or env-var references
 
 **Checkpoint**: Zero legacy CLI surface remains; clap rejects all removed commands/flags
 
@@ -219,8 +219,8 @@
 
 **Independent Test**: Review README content and run `dbtoon --help`, `dbtoon query --help` to verify
 
-- [ ] T045 [US8] Update README.md — show `dbtoon init` as first step, use `query -P <profile>` in all examples, document Databricks standard env vars only, remove all `exec-read`/`exec-write`/`DBTOON_*` references
-- [ ] T046 [US8] Review and update all clap `about`/`long_about`/`help` strings in `src/cli.rs` to reflect new structure
+- [X] T045 [US8] Update README.md — show `dbtoon init` as first step, use `query -P <profile>` in all examples, document Databricks standard env vars only, remove all `exec-read`/`exec-write`/`DBTOON_*` references
+- [X] T046 [US8] Review and update all clap `about`/`long_about`/`help` strings in `src/cli.rs` to reflect new structure
 
 **Checkpoint**: README and help text match the new CLI contract
 
@@ -234,12 +234,12 @@
 
 ### Tests for Profile Test
 
-- [ ] T047 [US3] Write test for `profile test` — missing required fields error, connectivity attempt in `tests/unit/profile_test.rs`
+- [X] T047 [US3] Write test for `profile test` — missing required fields error, connectivity attempt in `tests/unit/profile_test.rs`
 
 ### Implementation for Profile Test
 
-- [ ] T048 [US3] Implement `profile test` in `src/profile.rs` — validate required fields, attempt backend connection, report result
-- [ ] T049 [US3] Wire `profile test` dispatch in `src/main.rs`
+- [X] T048 [US3] Implement `profile test` in `src/profile.rs` — validate required fields, attempt backend connection, report result
+- [X] T049 [US3] Wire `profile test` dispatch in `src/main.rs`
 
 **Checkpoint**: `dbtoon profile test mydb` reports connection success or specific failure
 
@@ -249,10 +249,10 @@
 
 **Purpose**: Final validation, cleanup, and cross-cutting improvements
 
-- [ ] T050 Run full `cargo test` suite and fix any failures
-- [ ] T051 Run `cargo clippy` and resolve all warnings
-- [ ] T052 [P] Remove unused imports, dead code, and `todo!()` stubs across all source files
-- [ ] T053 Run quickstart.md validation — execute the implementation order steps end-to-end
+- [X] T050 Run full `cargo test` suite and fix any failures
+- [X] T051 Run `cargo clippy` and resolve all warnings
+- [X] T052 [P] Remove unused imports, dead code, and `todo!()` stubs across all source files
+- [X] T053 Run quickstart.md validation — execute the implementation order steps end-to-end
 
 ---
 

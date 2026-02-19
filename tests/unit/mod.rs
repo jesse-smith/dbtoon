@@ -1,5 +1,8 @@
+mod cli_test;
 mod config_test;
 mod format_arrow_test;
+mod init_test;
+mod profile_test;
 mod format_columnar_test;
 mod format_csv_test;
 mod format_detect_test;

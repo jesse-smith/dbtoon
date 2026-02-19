@@ -5,15 +5,15 @@ use std::path::PathBuf;
 #[command(name = "dbtoon", about = "Multi-database query CLI with TOON output")]
 pub struct Cli {
     /// Path to config file
-    #[arg(short = 'c', long, global = true, env = "DBTOON_CONFIG")]
+    #[arg(short = 'c', long, global = true)]
     pub config: Option<PathBuf>,
 
     /// Emit diagnostics to stderr
-    #[arg(short = 'v', long, global = true, env = "DBTOON_VERBOSE")]
+    #[arg(short = 'v', long, global = true)]
     pub verbose: bool,
 
     /// Disable credential masking
-    #[arg(long, global = true, env = "DBTOON_SHOW_SECRETS")]
+    #[arg(long, global = true)]
     pub show_secrets: bool,
 
     #[command(subcommand)]
@@ -22,111 +22,152 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Execute a read-only query
-    #[command(name = "exec-read")]
-    ExecRead(ExecArgs),
+    /// Create a config file with defaults and example profiles
+    Init,
 
-    /// Execute a query without read-only validation (requires DBTOON_ALLOW_WRITE=true)
-    #[command(name = "exec-write")]
-    ExecWrite(ExecArgs),
+    /// Execute a SQL query against a profile
+    Query(QueryArgs),
 
-    /// List available Databricks SQL warehouses
-    #[command(name = "list-warehouses")]
-    ListWarehouses(ListWarehousesArgs),
+    /// Manage connection profiles
+    #[command(subcommand)]
+    Profile(ProfileCommand),
+
+    /// Databricks warehouse operations
+    Warehouse(WarehouseArgs),
 
     /// Update dbtoon to the latest release
     Update,
 }
 
 #[derive(Parser, Debug)]
-pub struct ExecArgs {
+pub struct QueryArgs {
     /// SQL query text
+    #[arg(conflicts_with = "file")]
     pub sql: Option<String>,
 
     /// Read SQL from file
-    #[arg(short = 'f', long = "file", conflicts_with = "sql")]
-    pub sql_file: Option<PathBuf>,
+    #[arg(short = 'f', long)]
+    pub file: Option<PathBuf>,
 
-    /// Backend type: sqlserver or databricks
-    #[arg(short = 'b', long, env = "DBTOON_BACKEND")]
-    pub backend: Option<String>,
+    /// Profile name
+    #[arg(short = 'P', long, required = true)]
+    pub profile: String,
 
-    /// SQL Server hostname
-    #[arg(short = 's', long, env = "DBTOON_SERVER")]
-    pub server: Option<String>,
-
-    /// Database name
-    #[arg(short = 'd', long, env = "DBTOON_DATABASE")]
+    /// Override database/catalog
+    #[arg(short = 'd', long, conflicts_with = "catalog")]
     pub database: Option<String>,
 
-    /// SQL Auth username
-    #[arg(short = 'u', long, env = "DBTOON_USERNAME")]
-    pub username: Option<String>,
-
-    /// SQL Auth password
-    #[arg(short = 'p', long, env = "DBTOON_PASSWORD")]
-    pub password: Option<String>,
-
-    /// Use Windows Integrated Auth
-    #[arg(short = 'w', long, env = "DBTOON_WINDOWS_AUTH")]
-    pub windows_auth: bool,
-
-    /// Trust SQL Server certificate (for self-signed/dev instances)
-    #[arg(long, env = "DBTOON_TRUST_SERVER_CERT")]
-    pub trust_server_certificate: bool,
-
-    /// Databricks workspace host
-    #[arg(long, env = "DBTOON_DATABRICKS_HOST")]
-    pub host: Option<String>,
-
-    /// Databricks bearer token
-    #[arg(long, env = "DBTOON_DATABRICKS_TOKEN")]
-    pub token: Option<String>,
-
-    /// Databricks SQL warehouse ID
-    #[arg(long, env = "DBTOON_WAREHOUSE_ID")]
-    pub warehouse: Option<String>,
-
-    /// Databricks catalog
-    #[arg(long, env = "DBTOON_CATALOG")]
+    /// Override catalog (alias for --database)
+    #[arg(long, conflicts_with = "database")]
     pub catalog: Option<String>,
 
-    /// Databricks schema
-    #[arg(long, env = "DBTOON_SCHEMA")]
+    /// Override schema
+    #[arg(short = 's', long)]
     pub schema: Option<String>,
 
-    /// Max rows to return (default: 500)
-    #[arg(short = 'l', long, env = "DBTOON_ROW_LIMIT")]
+    /// Override row limit
+    #[arg(short = 'l', long)]
     pub limit: Option<usize>,
 
     /// Disable row limit
     #[arg(long)]
     pub no_limit: bool,
 
-    /// Query timeout in seconds (default: 60)
-    #[arg(short = 't', long, env = "DBTOON_TIMEOUT")]
+    /// Override timeout in seconds
+    #[arg(short = 't', long)]
     pub timeout: Option<u64>,
 
-    /// Write results to file instead of stdout
+    /// Write results to file instead of stdout (format detected by extension)
     #[arg(short = 'o', long)]
     pub output: Option<PathBuf>,
 
-    /// Config file profile name
-    #[arg(short = 'P', long, env = "DBTOON_PROFILE")]
-    pub profile: Option<String>,
+    /// Bypass read-only safety validation
+    #[arg(long)]
+    pub allow_write: bool,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ProfileCommand {
+    /// Create a new connection profile
+    Create(ProfileCreateArgs),
+
+    /// Edit an existing profile
+    Edit(ProfileEditArgs),
+
+    /// Display profile with resolved values
+    Show(ProfileNameArgs),
+
+    /// List all profile names
+    List,
+
+    /// Test connectivity for a profile
+    Test(ProfileNameArgs),
+
+    /// Delete a profile
+    Delete(ProfileNameArgs),
+
+    /// Rename a profile
+    Rename(ProfileRenameArgs),
 }
 
 #[derive(Parser, Debug)]
-pub struct ListWarehousesArgs {
-    /// Databricks workspace host
-    #[arg(long, env = "DBTOON_DATABRICKS_HOST")]
-    pub host: Option<String>,
+pub struct ProfileCreateArgs {
+    /// Profile name
+    pub name: String,
 
-    /// Databricks bearer token
-    #[arg(long, env = "DBTOON_DATABRICKS_TOKEN")]
-    pub token: Option<String>,
+    /// Backend type: databricks or sqlserver
+    #[arg(long, required = true)]
+    pub backend: String,
 
-    /// Config file profile name
-    #[arg(short = 'P', long, env = "DBTOON_PROFILE")]
-    pub profile: Option<String>,
+    /// Set field values (repeatable, e.g., --set host=example.com)
+    #[arg(long = "set", value_name = "KEY=VALUE")]
+    pub set_fields: Vec<String>,
+}
+
+#[derive(Parser, Debug)]
+pub struct ProfileEditArgs {
+    /// Profile name
+    pub name: String,
+
+    /// Set field values (repeatable, e.g., --set host=example.com; --set key= removes field)
+    #[arg(long = "set", value_name = "KEY=VALUE")]
+    pub set_fields: Vec<String>,
+
+    /// Remove fields (repeatable)
+    #[arg(long = "unset", value_name = "KEY")]
+    pub unset_fields: Vec<String>,
+}
+
+#[derive(Parser, Debug)]
+pub struct ProfileNameArgs {
+    /// Profile name
+    pub name: String,
+}
+
+#[derive(Parser, Debug)]
+pub struct ProfileRenameArgs {
+    /// Current profile name
+    pub old: String,
+
+    /// New profile name
+    pub new: String,
+}
+
+#[derive(Parser, Debug)]
+pub struct WarehouseArgs {
+    #[command(subcommand)]
+    pub command: WarehouseCommand,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum WarehouseCommand {
+    /// List available Databricks SQL warehouses
+    List(WarehouseListArgs),
+}
+
+#[derive(Parser, Debug)]
+pub struct WarehouseListArgs {
+    /// Databricks profile name
+    #[arg(short = 'P', long, required = true)]
+    pub profile: String,
 }
