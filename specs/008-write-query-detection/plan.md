@@ -1,5 +1,7 @@
 # Implementation Plan: Rewrite Query Validation as Deny-List with Safe EXEC Allowlist
 
+> **STATUS: COMPLETE** | Merged: 2026-02-19 | Branch: `008-write-query-detection`
+
 **Branch**: `008-write-query-detection` | **Date**: 2026-02-19 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/008-write-query-detection/spec.md`
 

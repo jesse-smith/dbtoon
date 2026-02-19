@@ -1,8 +1,10 @@
 # Feature Specification: Rewrite Query Validation as Deny-List with Safe EXEC Allowlist
 
+> **STATUS: COMPLETE** | Merged: 2026-02-19 | Branch: `008-write-query-detection`
+
 **Feature Branch**: `008-write-query-detection`
 **Created**: 2026-02-19
-**Status**: Draft
+**Status**: Complete
 **Input**: speckit_inputs/008-write-query-detection/SPECIFY_INPUT.md
 
 ## User Scenarios & Testing *(mandatory)*

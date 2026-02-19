@@ -1,5 +1,7 @@
 # Tasks: Rewrite Query Validation as Deny-List with Safe EXEC Allowlist
 
+> **STATUS: COMPLETE** | Merged: 2026-02-19 | Branch: `008-write-query-detection`
+
 **Input**: Design documents from `/specs/008-write-query-detection/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, quickstart.md
 
