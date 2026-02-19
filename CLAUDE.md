@@ -14,6 +14,8 @@ Auto-generated from all feature plans. Last updated: 2026-02-10
 - N/A (install receipts managed by cargo-dist installer, not by dbtoon) (006-cargo-dist-release)
 - Rust (stable, 2024 edition) + `sqlparser` 0.61 (SQL parsing + AST — already integrated), `clap` 4.5, `thiserror` 2, `anyhow` 1 (008-write-query-detection)
 - N/A — pure validation logic, no persistence changes (008-write-query-detection)
+- Rust (stable, 2024 edition) + `clap` 4.5 (CLI), `toml` 0.8 (config read), `toml_edit` 0.25 (config write — NEW), `secrecy` 0.10 (masking), `serde` 1 (deserialization), `sqlparser` 0.61 (validation) (009-simplify-cli-ui)
+- TOML config file at `~/.config/dbtoon/config.toml`; no database changes (009-simplify-cli-ui)
 
 - Rust (stable, 2024 edition) + `odbc-api` 20 (SQL Server), `reqwest` 0.12 + `tokio` 1 (Databricks), `sqlparser` 0.61 (validation), `toon-format` 0.4 (output), `clap` 4.5 (CLI), `serde`/`toml` (config), `thiserror` 2 + `anyhow` 1 (errors), `secrecy` 0.10 (credential masking) (001-multi-db-query)
 
@@ -33,9 +35,9 @@ cargo test [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECH
 Rust (stable, 2024 edition): Follow standard conventions
 
 ## Recent Changes
+- 009-simplify-cli-ui: Added Rust (stable, 2024 edition) + `clap` 4.5 (CLI), `toml` 0.8 (config read), `toml_edit` 0.25 (config write — NEW), `secrecy` 0.10 (masking), `serde` 1 (deserialization), `sqlparser` 0.61 (validation)
 - 008-write-query-detection: Added Rust (stable, 2024 edition) + `sqlparser` 0.61 (SQL parsing + AST — already integrated), `clap` 4.5, `thiserror` 2, `anyhow` 1
 - 006-cargo-dist-release: Added Rust (stable, 2024 edition) + Existing (`clap` 4.5, `tokio` 1, `anyhow` 1, `thiserror` 2) + New (`axoupdater` 0.9 for self-update); cargo-dist 0.30.3 (build tooling, not a runtime dep)
-- 005-truncation-metadata: Added Rust (stable 1.91.1, 2024 edition) + Existing: `toon-format` 0.4 (TOON encoding), `arrow` 57 (Arrow schema metadata + IPC), `parquet` 57 (Parquet writer), `serde_json` 1 (JSON construction), `csv` 1.4; no new dependencies
 
 
 <!-- MANUAL ADDITIONS START -->
