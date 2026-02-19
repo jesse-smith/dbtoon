@@ -12,6 +12,7 @@ Central registry of all features and their current status.
 | 006 | Cross-Platform Binary Distribution & Self-Update | `006-cargo-dist-release` | Complete | 2026-02-13 | 12 tasks |
 | 007 | Self-Contained SQL Server Backend | `007-tiberius-mssql` | Archived | — | Tag: `archive/007-tiberius-mssql`. Tiberius macOS TLS + GSSAPI issues; see KNOWN-ISSUES.md |
 | 008 | Rewrite Query Validation as Deny-List with Safe EXEC Allowlist | `008-write-query-detection` | Complete | 2026-02-19 | 48 tasks, 3 user stories |
+| 009 | Simplify CLI Interface | `009-simplify-cli-ui` | Complete | 2026-02-19 | 52 tasks, 8 user stories |
 
 ## Status Definitions
 

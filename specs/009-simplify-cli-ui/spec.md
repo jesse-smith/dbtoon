@@ -1,5 +1,7 @@
 # Feature Specification: Simplify CLI Interface
 
+> **STATUS: COMPLETE** | Merged: 2026-02-19 | Branch: `009-simplify-cli-ui`
+
 **Feature Branch**: `009-simplify-cli-ui`
 **Created**: 2026-02-19
 **Status**: Draft

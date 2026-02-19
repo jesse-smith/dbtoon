@@ -1,5 +1,7 @@
 # Tasks: Simplify CLI Interface
 
+> **STATUS: COMPLETE** | Merged: 2026-02-19 | Branch: `009-simplify-cli-ui`
+
 **Input**: Design documents from `/specs/009-simplify-cli-ui/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 

@@ -1,5 +1,7 @@
 # Implementation Plan: Simplify CLI Interface
 
+> **STATUS: COMPLETE** | Merged: 2026-02-19 | Branch: `009-simplify-cli-ui`
+
 **Branch**: `009-simplify-cli-ui` | **Date**: 2026-02-19 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/009-simplify-cli-ui/spec.md`
 
